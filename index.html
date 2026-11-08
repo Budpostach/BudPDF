@@ -75,10 +75,10 @@
                 download: "Завантажити",
                 preview: "Перегляд",
                 errorPass: "Помилка: файл захищено паролем.",
-                errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті.",
+                errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті браузера.",
                 successPass: "Успішно конвертовано (Ч/Б)",
-                splitNotice: "Розбито на окремі сторінки (>2 стор.)[cite: 1]",
-                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI[cite: 1]",
+                splitNotice: "Розбито на окремі сторінки (>2 стор.)",
+                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
@@ -115,10 +115,10 @@
                 download: "Download",
                 preview: "Preview",
                 errorPass: "Error: File is password protected.",
-                errorCorrupt: "Error: File is corrupted or memory limit reached.",
+                errorCorrupt: "Error: File is corrupted or browser memory limit reached.",
                 successPass: "Successfully Converted (B&W)",
-                splitNotice: "Split into single pages (>2 pages)[cite: 1]",
-                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied[cite: 1]",
+                splitNotice: "Split into single pages (>2 pages)",
+                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
@@ -187,19 +187,19 @@
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
-                                    <span class="font-semibold text-emerald-600">Обов'язково[cite: 1]</span>
+                                    <span class="font-semibold text-emerald-600">Обов'язково</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.resLabel}</span>
-                                    <span class="font-semibold text-slate-700">600 DPI (пріоритет)[cite: 1]</span>
+                                    <span class="font-semibold text-slate-700">600 DPI (пріоритет)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Алгоритм DPI</span>
-                                    <span class="font-semibold text-slate-700">600→500→400→300→150[cite: 1]</span>
+                                    <span class="font-semibold text-slate-700">600→500→400→300→150</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.sizeLimitLabel}</span>
-                                    <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict[cite: 1]</span>
+                                    <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict</span>
                                 </li>
                             </ul>
                         </div>
@@ -340,14 +340,13 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Надежный алгоритм перевода в Ч/Б с усилением контрастности текстовых пикселей
-        function applyGrayscaleToCanvas(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Безопасный перевод в Ч/Б с усилением контраста
+        function applyGrayscaleToCtx(ctx, width, height) {
+            const imgData = ctx.getImageData(0, 0, width, height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                gray = gray < 210 ? Math.max(0, gray - 20) : 255; 
+                gray = gray < 210 ? Math.max(0, gray - 15) : 255; 
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
@@ -355,7 +354,7 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
-        // Рендеринг страницы с пошаговой проверкой размера по правилу 600 -> 500 -> 400 -> 300 -> 150 DPI
+        // Постраничный рендеринг и пошаговая оптимизация DPI без переполнения памяти
         async function processSinglePageOptimized(page, ptWidth, ptHeight) {
             const { jsPDF } = window.jspdf;
             const dpiSteps = [600, 500, 400, 300, 150];
@@ -372,16 +371,13 @@
                 canvas.height = Math.max(1, Math.floor(ptHeight * scale));
                 const ctx = canvas.getContext('2d');
 
-                // Гарантированная белая заливка фона перед рендерингом текста и векторных элементов
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 try {
                     const viewport = page.getViewport({ scale: scale });
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    
-                    // Перевод в Ч/Б
-                    applyGrayscaleToCanvas(canvas);
+                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                     let bestQualityBuffer = null;
                     let lowQ = 0.1, highQ = 0.95;
@@ -406,18 +402,18 @@
 
                     if (bestQualityBuffer) {
                         bestPageBuffer = bestQualityBuffer;
-                        finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        canvas.width = 0; canvas.height = 0;
+                        finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        canvas.width = 0; canvas.height = 0; // Освобождение памяти
                         break;
                     }
                 } catch (e) {
-                    console.warn(`Memory limit at ${dpi} DPI, stepping down.`);
+                    console.warn(`Memory pressure at ${dpi} DPI, falling back to lower resolution.`);
                 }
 
-                canvas.width = 0; canvas.height = 0;
+                canvas.width = 0; canvas.height = 0; // Освобождение памяти
             }
 
-            // Крайний резервный вариант при 150 DPI
+            // Запасной вариант при 150 DPI
             if (!bestPageBuffer) {
                 appliedDpi = 150;
                 const scale = 150 / 72;
@@ -430,7 +426,7 @@
                 
                 const viewport = page.getViewport({ scale: scale });
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                applyGrayscaleToCanvas(canvas);
+                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: ptWidth > ptHeight ? 'l' : 'p',
@@ -439,7 +435,7 @@
                 });
                 singleDoc.addImage(canvas.toDataURL('image/jpeg', 0.1), 'JPEG', 0, 0, ptWidth, ptHeight);
                 bestPageBuffer = singleDoc.output('arraybuffer');
-                finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                 canvas.width = 0; canvas.height = 0;
             }
 
@@ -475,7 +471,7 @@
                         const ptWidth = page.getViewport({ scale: 1.0 }).width;
                         const ptHeight = page.getViewport({ scale: 1.0 }).height;
 
-                        // Отрисовка оригинала для превью (1-я страница)
+                        // Снятие оригинала для превью первушки
                         if (p === 1) {
                             const prevCanvas = document.createElement('canvas');
                             prevCanvas.width = Math.floor(ptWidth * (150/72));
@@ -488,7 +484,7 @@
                             prevCanvas.width = 0; prevCanvas.height = 0;
                         }
 
-                        // Оптимизация и конвертация в Ч/Б
+                        // Безопасная оптиматизация
                         const res = await processSinglePageOptimized(page, ptWidth, ptHeight);
 
                         if (res.dpi < 600) heavyDetected = true;
