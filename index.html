@@ -30,14 +30,12 @@
     <script>
         const LOGO_SRC = "BP_logo.jpg";
 
-        // Отслеживаем клики по логотипу
         document.addEventListener('click', (event) => {
             if (event.target && event.target.tagName === 'IMG' && event.target.getAttribute('src') === LOGO_SRC) {
                 window.location.href = 'https://budpdf.vercel.app';
             }
         });
 
-        // Добавляем стиль курсора для логотипа
         const observer = new MutationObserver(() => {
             const logoImg = document.querySelector(`img[src="${LOGO_SRC}"]`);
             if (logoImg) {
@@ -57,20 +55,18 @@
                 resLabel: "Роздільна здатність",
                 colorLabel: "Колірна схема",
                 sizeLimitLabel: "Ліміт розміру файлу",
-                qualityLabel: "Якість JPEG",
+                qualityLabel: "Якість стиснення",
                 pageSizeLabel: "Збереження розміру",
                 priorityLabel: "Пріоритет",
                 auto: "Авто (Ціль < 490 КБ)",
                 enabled: "Увімкнено",
-                maxReadability: "Максимальна читабельність (600 DPI)",
+                maxReadability: "Максимальна читабельність (600 DPI Text Guard)",
                 convertBtn: "Конвертувати PDF",
                 processing: "Обробка...",
                 clearList: "Очистити список",
                 addMore: "Додати ще PDF",
                 downloadAllZip: "Завантажити всі (ZIP)",
                 fileListTitle: "Черга документів",
-                original: "Оригінал",
-                result: "Результат",
                 status: "Статус",
                 size: "Розмір",
                 pages: "Сторінок",
@@ -80,12 +76,12 @@
                 errorCorrupt: "Помилка: файл пошкоджено або неможливо прочитати.",
                 successPass: "Успішно конвертовано",
                 splitNotice: "Розбито на окремі сторінки (<490 КБ)",
-                heavyPageNotice: "⚠️ Адаптивне зниження DPI (Smart DPI)",
+                heavyPageNotice: "⚠️ Адаптивний Text-Guard (Smart DPI)",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (High Readability)"
+                processedPage: "Оброблена (Чіткий текст)"
             },
             en: {
                 title: "PDF Converter",
@@ -96,20 +92,18 @@
                 resLabel: "Resolution",
                 colorLabel: "Color Mode",
                 sizeLimitLabel: "Max File Size",
-                qualityLabel: "JPEG Quality",
+                qualityLabel: "Compression Quality",
                 pageSizeLabel: "Preserve Page Size",
                 priorityLabel: "Priority",
                 auto: "Auto (Target < 490 KB)",
                 enabled: "Enabled",
-                maxReadability: "Maximum Readability (600 DPI)",
+                maxReadability: "Maximum Readability (600 DPI Text Guard)",
                 convertBtn: "Convert PDF",
                 processing: "Processing...",
                 clearList: "Clear List",
                 addMore: "Add More PDFs",
                 downloadAllZip: "Download All (ZIP)",
                 fileListTitle: "Document Queue",
-                original: "Original",
-                result: "Result",
                 status: "Status",
                 size: "Size",
                 pages: "Pages",
@@ -119,12 +113,12 @@
                 errorCorrupt: "Error: File is corrupted or unreadable.",
                 successPass: "Successfully Converted",
                 splitNotice: "Split into separate pages (<490 KB)",
-                heavyPageNotice: "⚠️ Smart DPI downscaling applied",
+                heavyPageNotice: "⚠️ Smart DPI Text-Guard applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
                 originalPage: "Original Page",
-                processedPage: "Processed (High Readability)"
+                processedPage: "Processed (Sharp Text)"
             }
         };
 
@@ -133,7 +127,7 @@
         let isProcessing = false;
         let activeModal = null;
         
-        const MAX_BYTES = 490 * 1024; // 490 KB limit
+        const MAX_BYTES = 490 * 1024; // 490 KB
 
         function renderApp() {
             const strings = t[currentLang];
@@ -187,7 +181,7 @@
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.colorLabel}</span>
-                                    <span class="font-semibold text-slate-700">Full Color / High Contrast</span>
+                                    <span class="font-semibold text-slate-700">High Contrast / Text Guard</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.sizeLimitLabel}</span>
@@ -344,39 +338,40 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        function createPdfBuffer(pageImages, quality) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: pageImages[0].width > pageImages[0].height ? 'l' : 'p',
-                unit: 'pt',
-                format: [pageImages[0].width, pageImages[0].height]
-            });
-
-            for (let pIdx = 0; pIdx < pageImages.length; pIdx++) {
-                const pi = pageImages[pIdx];
-                if (pIdx > 0) doc.addPage([pi.width, pi.height], pi.width > pi.height ? 'l' : 'p');
-                doc.addImage(pi.canvas.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, pi.width, pi.height);
-            }
-            return doc.output('arraybuffer');
-        }
-
-        // Высококачественный рендеринг страницы без искажения шрифтов
-        async function renderPageAtDpi(page, dpi) {
+        // Точный рендеринг страницы PDF с адаптивной бинаризацией текста
+        async function renderPageOptimized(page, dpi, forceBinarize = false) {
             const scale = dpi / 72;
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            const ctx = canvas.getContext('2d', { alpha: false });
-            
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
 
             await page.render({ 
                 canvasContext: ctx, 
                 viewport: viewport,
-                intent: 'print' // Включает режим высокой четкости печати шрифтов
+                intent: 'print'
             }).promise;
+
+            // Пороговое выделение текста для идеальной читаемости мелких символов
+            if (forceBinarize) {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+                for (let j = 0; j < data.length; j += 4) {
+                    const r = data[j], g = data[j+1], b = data[j+2];
+                    const luminance = r * 0.299 + g * 0.587 + b * 0.114;
+                    // Сохраняем красные печати/штампы, увеличивая контраст текста
+                    const isRedStamp = (r > 130 && g < 90 && b < 90);
+                    if (!isRedStamp) {
+                        const val = luminance < 190 ? 0 : 255;
+                        data[j] = val; data[j+1] = val; data[j+2] = val;
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+            }
 
             return {
                 width: page.getViewport({ scale: 1.0 }).width,
@@ -386,51 +381,65 @@
             };
         }
 
-        function createSinglePagePdfBuffer(pi, quality) {
+        function createSinglePagePdfBuffer(pi, formatType, quality) {
             const { jsPDF } = window.jspdf;
-            const singleDoc = new jsPDF({
+            const doc = new jsPDF({
                 orientation: pi.width > pi.height ? 'l' : 'p',
                 unit: 'pt',
                 format: [pi.width, pi.height]
             });
-            singleDoc.addImage(pi.canvas.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, pi.width, pi.height);
-            return singleDoc.output('arraybuffer');
+            const imgData = pi.canvas.toDataURL(formatType === 'PNG' ? 'image/png' : 'image/jpeg', quality);
+            doc.addImage(imgData, formatType, 0, 0, pi.width, pi.height, undefined, 'FAST');
+            return doc.output('arraybuffer');
         }
 
-        // Адаптивная оптимизация DPI: 600 -> 500 -> 400 -> 300 -> 150 DPI
-        async function processSinglePageOptimized(page) {
+        // Выполнение алгоритма: 600 -> 500 -> 400 -> 300 -> 150 DPI
+        async function processPageWithSequence(page) {
             const dpis = [600, 500, 400, 300, 150];
-            let appliedHeavy = false;
+            let isHeavy = false;
 
-            for (let i = 0; i < dpis.length; i++) {
-                const currentDpi = dpis[i];
-                if (currentDpi < 600) appliedHeavy = true;
-
-                const pi = await renderPageAtDpi(page, currentDpi);
-
-                // Безопасный бинарный поиск качества (от 0.25 до 0.85), сохраняющий читаемость шрифтов
-                let low = 0.25, high = 0.85;
-                let bestBufferForDpi = null;
-
-                for (let iter = 0; iter < 6; iter++) {
+            // 1-й проход: Стандартный высокое качество JPEG
+            for (let dpi of dpis) {
+                if (dpi < 600) isHeavy = true;
+                const pi = await renderPageOptimized(page, dpi, false);
+                
+                let low = 0.35, high = 0.85, bestBuf = null;
+                for (let iter = 0; iter < 5; iter++) {
                     let mid = (low + high) / 2;
-                    const buf = createSinglePagePdfBuffer(pi, mid);
+                    const buf = createSinglePagePdfBuffer(pi, 'JPEG', mid);
                     if (buf.byteLength <= MAX_BYTES) {
-                        bestBufferForDpi = buf;
-                        low = mid; 
+                        bestBuf = buf;
+                        low = mid;
                     } else {
-                        high = mid; 
+                        high = mid;
                     }
                 }
 
-                if (bestBufferForDpi) {
-                    return { bytes: bestBufferForDpi, heavy: appliedHeavy, pi: pi };
+                if (bestBuf) {
+                    return { bytes: bestBuf, heavy: isHeavy, pi: pi };
                 }
             }
 
-            // Фоллбэк для чрезвычайно плотных страниц на 150 DPI
-            const fallbackPi = await renderPageAtDpi(page, 150);
-            const fallbackBuf = createSinglePagePdfBuffer(fallbackPi, 0.20);
+            // 2-й проход: Включаем High-Contrast Text Guard (PNG / 1-bit style), спасающий мелкий текст
+            for (let dpi of dpis) {
+                const pi = await renderPageOptimized(page, dpi, true);
+                
+                // PNG отлично сжимает бинаризованные текстовые документы без потери читаемости
+                const pngBuf = createSinglePagePdfBuffer(pi, 'PNG', 1.0);
+                if (pngBuf.byteLength <= MAX_BYTES) {
+                    return { bytes: pngBuf, heavy: true, pi: pi };
+                }
+
+                // В крайнем случае используем сжатый JPEG от бинаризованного холста
+                const jpegBuf = createSinglePagePdfBuffer(pi, 'JPEG', 0.45);
+                if (jpegBuf.byteLength <= MAX_BYTES) {
+                    return { bytes: jpegBuf, heavy: true, pi: pi };
+                }
+            }
+
+            // Крайний фоллбэк: 150 DPI с сохранённым контрастом
+            const fallbackPi = await renderPageOptimized(page, 150, true);
+            const fallbackBuf = createSinglePagePdfBuffer(fallbackPi, 'JPEG', 0.30);
             return { bytes: fallbackBuf, heavy: true, pi: fallbackPi };
         }
 
@@ -451,7 +460,7 @@
                     const pdfDoc = await loadingTask.promise;
                     item.pagesCount = pdfDoc.numPages;
 
-                    // Обязательное разделение для документов > 2 страниц
+                    // Если > 2 страниц - строго делим на отдельные файлы в архив
                     if (item.pagesCount > 2) {
                         item.isSplit = true;
                         let heavyDetected = false;
@@ -460,7 +469,7 @@
 
                         for (let p = 1; p <= pdfDoc.numPages; p++) {
                             const page = await pdfDoc.getPage(p);
-                            const result = await processSinglePageOptimized(page);
+                            const result = await processPageWithSequence(page);
                             
                             if (p === 1) {
                                 item.originalDataUrl = result.pi.canvas.toDataURL('image/jpeg', 0.8);
@@ -482,58 +491,29 @@
                         item.statusText = strings.successPass;
 
                     } else {
-                        // Одно- и двухстраничные документы
+                        // Для 1-2 страниц
                         item.isSplit = false;
-                        const pageImages = [];
+                        const zip = new JSZip();
+                        let totalSizeSum = 0;
+                        let heavyDetected = false;
+
                         for (let p = 1; p <= pdfDoc.numPages; p++) {
                             const page = await pdfDoc.getPage(p);
-                            const pi = await renderPageAtDpi(page, 300);
+                            const result = await processPageWithSequence(page);
                             if (p === 1) {
-                                item.originalDataUrl = pi.canvas.toDataURL('image/jpeg', 0.8);
-                                item.processedDataUrl = pi.canvas.toDataURL('image/jpeg', 0.8);
+                                item.originalDataUrl = result.pi.canvas.toDataURL('image/jpeg', 0.8);
+                                item.processedDataUrl = result.pi.canvas.toDataURL('image/jpeg', 0.8);
                             }
-                            pageImages.push(pi);
+                            if (result.heavy) heavyDetected = true;
+                            zip.file(`Page_${p}_${item.file.name}`, result.bytes);
+                            totalSizeSum += result.bytes.byteLength;
                         }
 
-                        let bestPdfBlob = null;
-                        let bestSize = Infinity;
-                        let low = 0.25, high = 0.85;
-
-                        for (let iter = 0; iter < 7; iter++) {
-                            let mid = (low + high) / 2;
-                            const pdfOutput = createPdfBuffer(pageImages, mid);
-                            if (pdfOutput.byteLength <= MAX_BYTES) {
-                                bestPdfBlob = pdfOutput;
-                                bestSize = pdfOutput.byteLength;
-                                low = mid;
-                            } else {
-                                high = mid;
-                            }
-                        }
-
-                        if (!bestPdfBlob) {
-                            item.isSplit = true;
-                            const zip = new JSZip();
-                            let totalSizeSum = 0;
-                            let heavyDetected = false;
-
-                            for (let p = 1; p <= pdfDoc.numPages; p++) {
-                                const page = await pdfDoc.getPage(p);
-                                const result = await processSinglePageOptimized(page);
-                                if (result.heavy) heavyDetected = true;
-                                zip.file(`Page_${p}_${item.file.name}`, result.bytes);
-                                totalSizeSum += result.bytes.byteLength;
-                            }
-                            item.hasHeavyPages = heavyDetected;
-                            const zipBlob = await zip.generateAsync({ type: 'arraybuffer' });
-                            item.processedPdfBytes = zipBlob;
-                            item.processedSize = totalSizeSum / pdfDoc.numPages;
-                        } else {
-                            item.hasHeavyPages = false;
-                            item.processedPdfBytes = bestPdfBlob;
-                            item.processedSize = bestSize;
-                        }
-
+                        item.hasHeavyPages = heavyDetected;
+                        item.isSplit = true; // разделяем для гарантированного соблюдения лимита 490 КБ
+                        const zipBlob = await zip.generateAsync({ type: 'arraybuffer' });
+                        item.processedPdfBytes = zipBlob;
+                        item.processedSize = totalSizeSum / pdfDoc.numPages;
                         item.status = 'success';
                         item.statusText = strings.successPass;
                     }
