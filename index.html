@@ -30,6 +30,29 @@
     <script>
         const LOGO_SRC = "BP_logo.jpg";
 
+// Отслеживаем клики по всему документу (работает для динамически созданных элементов)
+document.addEventListener('click', (event) => {
+    // Проверяем, является ли элемент картинкой и совпадает ли её src с нашим логотипом
+    if (event.target && event.target.tagName === 'IMG' && event.target.getAttribute('src') === LOGO_SRC) {
+        window.location.href = 'https://budpdf.vercel.app';
+    }
+});
+
+// Добавляем стиль курсора, как только логотип появится в контейнере #root
+const observer = new MutationObserver(() => {
+    const logoImg = document.querySelector(`img[src="${LOGO_SRC}"]`);
+    if (logoImg) {
+        logoImg.style.cursor = 'pointer';
+        observer.disconnect(); // Отключаем слежку, когда стиль успешно добавлен
+    }
+});
+observer.observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+
+
+
+        
+        
+
         const t = {
             ua: {
                 title: "PDF Converter",
@@ -73,7 +96,7 @@
             },
             en: {
                 title: "PDF Converter",
-                subtitle: "PDF document preparation for Ukrainian banks",
+                subtitle: "Preparing PDF Documents",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
                 dropSubtext: "Supports multi-page documents, invoices, contracts, and stamped/signed scans",
                 settingsTitle: "Processing Parameters",
