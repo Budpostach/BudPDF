@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PDF.js for rendering PDFs & Text Layer -->
+    <!-- PDF.js for rendering PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -17,24 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- JSZip for batch archiving -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <style>
-        /* Стили для корректного отображения текстового слоя при рендеринге */
-        .textLayer {
-            position: absolute;
-            left: 0; top: 0; right: 0; bottom: 0;
-            overflow: hidden;
-            opacity: 0.99;
-            line-height: 1.0;
-            pointer-events: none;
-        }
-        .textLayer span {
-            color: transparent;
-            position: absolute;
-            white-space: pre;
-            cursor: text;
-            transform-origin: 0% 0%;
-        }
-    </style>
 </head>
 <body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between selection:bg-blue-900 selection:text-white">
 
@@ -68,7 +50,7 @@
                 title: "PDF Converter",
                 subtitle: "Підготовка PDF (Чорно-біле, >2 стор. окремо, 600→150 DPI, <490 КБ)",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація зі збереженням тексту до 490 КБ",
+                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація та оптимізація до 490 КБ",
                 settingsTitle: "Параметри обробки",
                 resLabel: "Цільова роздільна здатність",
                 colorLabel: "Колірна схема",
@@ -78,7 +60,7 @@
                 priorityLabel: "Пріоритет",
                 auto: "Авто (< 490 КБ)",
                 enabled: "Увімкнено",
-                maxReadability: "Ч/Б режим + повне збереження тексту",
+                maxReadability: "Чорно-білий режим + 600 DPI",
                 convertBtn: "Конвертувати PDF",
                 processing: "Обробка документів...",
                 clearList: "Очистити список",
@@ -93,22 +75,22 @@
                 download: "Завантажити",
                 preview: "Перегляд",
                 errorPass: "Помилка: файл захищено паролем.",
-                errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті.",
-                successPass: "Успішно конвертовано (Ч/Б, текст збережено)",
-                splitNotice: "Розбито на окремі сторінки (>2 стор.)[cite: 1]",
-                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI[cite: 1]",
+                errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті браузера.",
+                successPass: "Успішно конвертовано (Ч/Б)",
+                splitNotice: "Розбито на окремі сторінки (>2 стор.)",
+                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
                 zoom: "Збільшити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (Чорно-біла, текст збережено)"
+                processedPage: "Оброблена (Чорно-біла, Smart DPI)"
             },
             en: {
                 title: "PDF Converter",
                 subtitle: "Preparing PDF (Grayscale, >2 pages split, 600→150 DPI, <490 KB)",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic splitting, Grayscale & text preservation under 490 KB",
+                dropSubtext: "Automatic splitting, Grayscale conversion & optimization under 490 KB",
                 settingsTitle: "Processing Parameters",
                 resLabel: "Target Resolution",
                 colorLabel: "Color Mode",
@@ -118,7 +100,7 @@
                 priorityLabel: "Priority",
                 auto: "Auto (< 490 KB)",
                 enabled: "Enabled",
-                maxReadability: "Grayscale + Full Text Preservation",
+                maxReadability: "Grayscale Mode + 600 DPI",
                 convertBtn: "Convert PDF",
                 processing: "Processing documents...",
                 clearList: "Clear List",
@@ -133,16 +115,16 @@
                 download: "Download",
                 preview: "Preview",
                 errorPass: "Error: File is password protected.",
-                errorCorrupt: "Error: File is corrupted or memory limit reached.",
-                successPass: "Successfully Converted (B&W, Text Saved)",
-                splitNotice: "Split into single pages (>2 pages)[cite: 1]",
-                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied[cite: 1]",
+                errorCorrupt: "Error: File is corrupted or browser memory limit reached.",
+                successPass: "Successfully Converted (B&W)",
+                splitNotice: "Split into single pages (>2 pages)",
+                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
                 zoom: "Zoom",
                 originalPage: "Original Page",
-                processedPage: "Processed (Grayscale, Text Saved)"
+                processedPage: "Processed (Grayscale, Smart DPI)"
             }
         };
 
@@ -201,23 +183,23 @@
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale + Text)</span>
+                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
-                                    <span class="font-semibold text-emerald-600">Обов'язково[cite: 1]</span>
+                                    <span class="font-semibold text-emerald-600">Обов'язково</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.resLabel}</span>
-                                    <span class="font-semibold text-slate-700">600 DPI (пріоритет)[cite: 1]</span>
+                                    <span class="font-semibold text-slate-700">600 DPI (пріоритет)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Алгоритм DPI</span>
-                                    <span class="font-semibold text-slate-700">600→500→400→300→150[cite: 1]</span>
+                                    <span class="font-semibold text-slate-700">600→500→400→300→150</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.sizeLimitLabel}</span>
-                                    <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict[cite: 1]</span>
+                                    <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict</span>
                                 </li>
                             </ul>
                         </div>
@@ -358,15 +340,13 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Точный перевод пикселей холста в Ч/Б (Grayscale) с усилением контраста текста
-        function applyGrayscaleToCanvas(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // Безопасный перевод в Ч/Б с усилением контраста
+        function applyGrayscaleToCtx(ctx, width, height) {
+            const imgData = ctx.getImageData(0, 0, width, height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                // Затемняем темные участки (текст), делаем фон абсолютно белым
-                gray = gray < 210 ? Math.max(0, gray - 25) : 255; 
+                gray = gray < 210 ? Math.max(0, gray - 15) : 255; 
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
@@ -374,7 +354,7 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
-        // Рендеринг страницы со встроенным текстовым слоем PDF.js и пошаговым снижением DPI
+        // Постраничный рендеринг и пошаговая оптимизация DPI без переполнения памяти
         async function processSinglePageOptimized(page, ptWidth, ptHeight) {
             const { jsPDF } = window.jspdf;
             const dpiSteps = [600, 500, 400, 300, 150];
@@ -386,64 +366,18 @@
                 appliedDpi = dpi;
                 const scale = dpi / 72;
                 
-                const container = document.createElement('div');
-                container.style.position = 'relative';
-                container.style.width = `${ptWidth * scale}px`;
-                container.style.height = `${ptHeight * scale}px`;
-
                 const canvas = document.createElement('canvas');
                 canvas.width = Math.max(1, Math.floor(ptWidth * scale));
                 canvas.height = Math.max(1, Math.floor(ptHeight * scale));
                 const ctx = canvas.getContext('2d');
+
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                container.appendChild(canvas);
-
-                const textLayerDiv = document.createElement('div');
-                textLayerDiv.className = 'textLayer';
-                container.appendChild(textLayerDiv);
 
                 try {
                     const viewport = page.getViewport({ scale: scale });
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-                    // Отрисовка текстового слоя для фиксации скрытых/векторных шрифтов деклараций
-                    const textContent = await page.getTextContent();
-                    await pdfjsLib.renderTextLayer({
-                        textContentSource: textContent,
-                        container: textLayerDiv,
-                        viewport: viewport,
-                        textDivs: []
-                    }).promise;
-
-                    // Небольшая задержка для завершения компоновки DOM-элементов текста в контейнере
-                    await new Promise(r => setTimeout(r, 40));
-
-                    // Переносим отрисованный текстовый слой прямо на основной canvas для полной фиксации текста
-                    ctx.save();
-                    const textSpans = textLayerDiv.querySelectorAll('span');
-                    textSpans.forEach(span => {
-                        const computed = window.getComputedStyle(span);
-                        const transform = computed.transform;
-                        ctx.save();
-                        if (transform && transform !== 'none') {
-                            const matrix = transform.match(/^matrix\((.+)\)$/);
-                            if (matrix) {
-                                const values = matrix[1].split(', ').map(Number);
-                                ctx.transform(...values);
-                            }
-                        } else {
-                            ctx.translate(parseFloat(span.style.left || 0), parseFloat(span.style.top || 0));
-                        }
-                        ctx.font = `${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
-                        ctx.fillStyle = '#000000';
-                        ctx.fillText(span.textContent, 0, 0);
-                        ctx.restore();
-                    });
-                    ctx.restore();
-
-                    // Перевод в Ч/Б
-                    applyGrayscaleToCanvas(canvas);
+                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                     let bestQualityBuffer = null;
                     let lowQ = 0.1, highQ = 0.95;
@@ -468,18 +402,18 @@
 
                     if (bestQualityBuffer) {
                         bestPageBuffer = bestQualityBuffer;
-                        finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        canvas.width = 0; canvas.height = 0;
+                        finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        canvas.width = 0; canvas.height = 0; // Освобождение памяти
                         break;
                     }
                 } catch (e) {
-                    console.warn(`Memory limit at ${dpi} DPI, stepping down.`, e);
+                    console.warn(`Memory pressure at ${dpi} DPI, falling back to lower resolution.`);
                 }
 
-                canvas.width = 0; canvas.height = 0;
+                canvas.width = 0; canvas.height = 0; // Освобождение памяти
             }
 
-            // Крайний резервный вариант при 150 DPI
+            // Запасной вариант при 150 DPI
             if (!bestPageBuffer) {
                 appliedDpi = 150;
                 const scale = 150 / 72;
@@ -492,7 +426,7 @@
                 
                 const viewport = page.getViewport({ scale: scale });
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                applyGrayscaleToCanvas(canvas);
+                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: ptWidth > ptHeight ? 'l' : 'p',
@@ -501,7 +435,7 @@
                 });
                 singleDoc.addImage(canvas.toDataURL('image/jpeg', 0.1), 'JPEG', 0, 0, ptWidth, ptHeight);
                 bestPageBuffer = singleDoc.output('arraybuffer');
-                finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                 canvas.width = 0; canvas.height = 0;
             }
 
@@ -537,7 +471,7 @@
                         const ptWidth = page.getViewport({ scale: 1.0 }).width;
                         const ptHeight = page.getViewport({ scale: 1.0 }).height;
 
-                        // Отрисовка оригинала для превью (1-я страница)
+                        // Снятие оригинала для превью первушки
                         if (p === 1) {
                             const prevCanvas = document.createElement('canvas');
                             prevCanvas.width = Math.floor(ptWidth * (150/72));
@@ -550,7 +484,7 @@
                             prevCanvas.width = 0; prevCanvas.height = 0;
                         }
 
-                        // Оптимизация и конвертация в Ч/Б со слоем текста
+                        // Безопасная оптиматизация
                         const res = await processSinglePageOptimized(page, ptWidth, ptHeight);
 
                         if (res.dpi < 600) heavyDetected = true;
