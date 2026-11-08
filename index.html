@@ -30,14 +30,14 @@
     <script>
         const LOGO_SRC = "BP_logo.jpg";
 
-        // Отслеживаем клики по логотипу
+        // Отслеживаем клики по всему документу (работает для динамически созданных элементов)
         document.addEventListener('click', (event) => {
             if (event.target && event.target.tagName === 'IMG' && event.target.getAttribute('src') === LOGO_SRC) {
                 window.location.href = 'https://budpdf.vercel.app';
             }
         });
 
-        // Добавляем стиль курсора для логотипа
+        // Добавляем стиль курсора, как только логотип появится в контейнере #root
         const observer = new MutationObserver(() => {
             const logoImg = document.querySelector(`img[src="${LOGO_SRC}"]`);
             if (logoImg) {
@@ -52,9 +52,9 @@
                 title: "PDF Converter",
                 subtitle: "Підготовка PDF-документів",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Підтримуються багатосторінкові документи (>2 сторінок будуть розділені на файли <490 КБ)",
+                dropSubtext: "Підтримуються багатосторінкові документи (>2 сторінок будуть розділені на файлы <490 КБ)",
                 settingsTitle: "Параметри обробки",
-                resLabel: "Роздільна здатність",
+                resLabel: "Цільове розширення",
                 colorLabel: "Колірна схема",
                 sizeLimitLabel: "Ліміт розміру файлу",
                 qualityLabel: "Якість JPEG",
@@ -80,12 +80,13 @@
                 errorCorrupt: "Помилка: файл пошкоджено або неможливо прочитати.",
                 successPass: "Успішно конвертовано",
                 splitNotice: "Розбито на окремі сторінки (<490 КБ)",
-                heavyPageNotice: "⚠️ Адаптивне зниження DPI (Smart DPI)",
+                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI (Smart DPI)",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
+                zoom: "Збільшити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (High Readability)"
+                processedPage: "Оброблена (Smart DPI 600-150, Grayscale)"
             },
             en: {
                 title: "PDF Converter",
@@ -93,7 +94,7 @@
                 dropZoneText: "Drag & drop PDF files here or click to browse",
                 dropSubtext: "Supports multi-page documents (>2 pages will be split into files <490 KB)",
                 settingsTitle: "Processing Parameters",
-                resLabel: "Resolution",
+                resLabel: "Target Resolution",
                 colorLabel: "Color Mode",
                 sizeLimitLabel: "Max File Size",
                 qualityLabel: "JPEG Quality",
@@ -123,8 +124,9 @@
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
+                zoom: "Zoom",
                 originalPage: "Original Page",
-                processedPage: "Processed (High Readability)"
+                processedPage: "Processed (Smart DPI 600-150, Grayscale)"
             }
         };
 
@@ -187,7 +189,7 @@
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.colorLabel}</span>
-                                    <span class="font-semibold text-slate-700">Full Color / High Contrast</span>
+                                    <span class="font-semibold text-slate-700">Grayscale (8-bit)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.sizeLimitLabel}</span>
@@ -344,6 +346,7 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
+        // Генерация PDF-документа для страниц (если страниц <= 2)
         function createPdfBuffer(pageImages, quality) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({
@@ -360,23 +363,25 @@
             return doc.output('arraybuffer');
         }
 
-        // Высококачественный рендеринг страницы без искажения шрифтов
+        // Рендеринг отдельной страницы по правилу Smart DPI (600 -> 500 -> 400 -> 300 -> 150)
         async function renderPageAtDpi(page, dpi) {
             const scale = dpi / 72;
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            const ctx = canvas.getContext('2d', { alpha: false });
+            const ctx = canvas.getContext('2d');
             
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-            await page.render({ 
-                canvasContext: ctx, 
-                viewport: viewport,
-                intent: 'print' // Включает режим высокой четкости печати шрифтов
-            }).promise;
+            // Перевод в Grayscale (8-bit) для уменьшения веса при сохранении читаемости текста и печатей
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let j = 0; j < data.length; j += 4) {
+                const gray = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
+                data[j] = gray; data[j + 1] = gray; data[j + 2] = gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
 
             return {
                 width: page.getViewport({ scale: 1.0 }).width,
@@ -386,6 +391,7 @@
             };
         }
 
+        // Создание одиночного PDF сжатого файла страницы строго под лимит 490 КБ
         function createSinglePagePdfBuffer(pi, quality) {
             const { jsPDF } = window.jspdf;
             const singleDoc = new jsPDF({
@@ -397,9 +403,9 @@
             return singleDoc.output('arraybuffer');
         }
 
-        // Адаптивная оптимизация DPI: 600 -> 500 -> 400 -> 300 -> 150 DPI
         async function processSinglePageOptimized(page) {
             const dpis = [600, 500, 400, 300, 150];
+            let bestBytes = null;
             let appliedHeavy = false;
 
             for (let i = 0; i < dpis.length; i++) {
@@ -408,8 +414,8 @@
 
                 const pi = await renderPageAtDpi(page, currentDpi);
 
-                // Безопасный бинарный поиск качества (от 0.25 до 0.85), сохраняющий читаемость шрифтов
-                let low = 0.25, high = 0.85;
+                // Бинарный поиск качественного JPEG сжатия (от 0.05 до 0.85) для текущего DPI
+                let low = 0.05, high = 0.85;
                 let bestBufferForDpi = null;
 
                 for (let iter = 0; iter < 6; iter++) {
@@ -417,21 +423,22 @@
                     const buf = createSinglePagePdfBuffer(pi, mid);
                     if (buf.byteLength <= MAX_BYTES) {
                         bestBufferForDpi = buf;
-                        low = mid; 
+                        low = mid; // Пробуем улучшить качество
                     } else {
-                        high = mid; 
+                        high = mid; // Снижаем качество
                     }
                 }
 
+                // Если нашли вариант <= 490 КБ на текущем DPI — фиксируем и возвращаем
                 if (bestBufferForDpi) {
-                    return { bytes: bestBufferForDpi, heavy: appliedHeavy, pi: pi };
+                    return { bytes: bestBufferForDpi, heavy: appliedHeavy };
                 }
             }
 
-            // Фоллбэк для чрезвычайно плотных страниц на 150 DPI
+            // Крайний случай: если даже на 150 DPI не влезло, берем минимальное качество на 150 DPI
             const fallbackPi = await renderPageAtDpi(page, 150);
-            const fallbackBuf = createSinglePagePdfBuffer(fallbackPi, 0.20);
-            return { bytes: fallbackBuf, heavy: true, pi: fallbackPi };
+            const fallbackBuf = createSinglePagePdfBuffer(fallbackPi, 0.05);
+            return { bytes: fallbackBuf, heavy: true };
         }
 
         async function startConversion() {
@@ -451,7 +458,7 @@
                     const pdfDoc = await loadingTask.promise;
                     item.pagesCount = pdfDoc.numPages;
 
-                    // Обязательное разделение для документов > 2 страниц
+                    // ОСНОВНОЕ ПРАВИЛО: Если страниц больше двух — автоматически делим на отдельные файлы
                     if (item.pagesCount > 2) {
                         item.isSplit = true;
                         let heavyDetected = false;
@@ -460,13 +467,15 @@
 
                         for (let p = 1; p <= pdfDoc.numPages; p++) {
                             const page = await pdfDoc.getPage(p);
-                            const result = await processSinglePageOptimized(page);
                             
+                            // Сохраняем превью первой страницы для модального окна
                             if (p === 1) {
-                                item.originalDataUrl = result.pi.canvas.toDataURL('image/jpeg', 0.8);
-                                item.processedDataUrl = result.pi.canvas.toDataURL('image/jpeg', 0.8);
+                                const previewPi = await renderPageAtDpi(page, 150);
+                                item.originalDataUrl = previewPi.canvas.toDataURL('image/jpeg', 0.8);
+                                item.processedDataUrl = previewPi.canvas.toDataURL('image/jpeg', 0.8);
                             }
 
+                            const result = await processSinglePageOptimized(page);
                             if (result.heavy) heavyDetected = true;
 
                             const pageFileName = `Page_${p}_${item.file.name.replace(/\.[^/.]+$/, "")}.pdf`;
@@ -482,12 +491,12 @@
                         item.statusText = strings.successPass;
 
                     } else {
-                        // Одно- и двухстраничные документы
+                        // Если страниц 1 или 2 — обрабатываем стандартно (или проверяем общий размер)
                         item.isSplit = false;
                         const pageImages = [];
                         for (let p = 1; p <= pdfDoc.numPages; p++) {
                             const page = await pdfDoc.getPage(p);
-                            const pi = await renderPageAtDpi(page, 300);
+                            const pi = await renderPageAtDpi(page, 300); // Базово пробуем 300 DPI для коротких документов
                             if (p === 1) {
                                 item.originalDataUrl = pi.canvas.toDataURL('image/jpeg', 0.8);
                                 item.processedDataUrl = pi.canvas.toDataURL('image/jpeg', 0.8);
@@ -497,7 +506,7 @@
 
                         let bestPdfBlob = null;
                         let bestSize = Infinity;
-                        let low = 0.25, high = 0.85;
+                        let low = 0.05, high = 0.85;
 
                         for (let iter = 0; iter < 7; iter++) {
                             let mid = (low + high) / 2;
@@ -511,6 +520,7 @@
                             }
                         }
 
+                        // Если короткий документ все равно не влезает в 490 КБ, применяем разделение постранично
                         if (!bestPdfBlob) {
                             item.isSplit = true;
                             const zip = new JSZip();
