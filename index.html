@@ -50,7 +50,7 @@
                 title: "PDF Converter",
                 subtitle: "Підготовка PDF (Чорно-біле, >2 стор. окремо, 600→150 DPI, <490 КБ)",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація із повним збереженням тексту",
+                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація зі збереженням тексту",
                 settingsTitle: "Параметри обробки",
                 resLabel: "Цільова роздільна здатність",
                 colorLabel: "Колірна схема",
@@ -60,7 +60,7 @@
                 priorityLabel: "Пріоритет",
                 auto: "Авто (< 490 КБ)",
                 enabled: "Увімкнено",
-                maxReadability: "Ч/Б режим + 100% збереження тексту",
+                maxReadability: "Ч/Б режим + 600 DPI",
                 convertBtn: "Конвертувати PDF",
                 processing: "Обробка документів...",
                 clearList: "Очистити список",
@@ -76,7 +76,7 @@
                 preview: "Перегляд",
                 errorPass: "Помилка: файл захищено паролем.",
                 errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті.",
-                successPass: "Успішно конвертовано (Ч/Б, текст збережено)",
+                successPass: "Успішно конвертовано (Ч/Б)",
                 splitNotice: "Розбито на окремі сторінки (>2 стор.)[cite: 1]",
                 heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI[cite: 1]",
                 noFiles: "Немає завантажених файлів",
@@ -84,13 +84,13 @@
                 close: "Закрити",
                 zoom: "Збільшити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (Чорно-біла, текст збережено)"
+                processedPage: "Оброблена (Чорно-біла, Smart DPI)"
             },
             en: {
                 title: "PDF Converter",
                 subtitle: "Preparing PDF (Grayscale, >2 pages split, 600→150 DPI, <490 KB)",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic splitting, Grayscale & full text preservation under 490 KB",
+                dropSubtext: "Automatic splitting, Grayscale conversion & optimization under 490 KB",
                 settingsTitle: "Processing Parameters",
                 resLabel: "Target Resolution",
                 colorLabel: "Color Mode",
@@ -100,7 +100,7 @@
                 priorityLabel: "Priority",
                 auto: "Auto (< 490 KB)",
                 enabled: "Enabled",
-                maxReadability: "Grayscale + Full Text Preservation",
+                maxReadability: "Grayscale Mode + 600 DPI",
                 convertBtn: "Convert PDF",
                 processing: "Processing documents...",
                 clearList: "Clear List",
@@ -116,7 +116,7 @@
                 preview: "Preview",
                 errorPass: "Error: File is password protected.",
                 errorCorrupt: "Error: File is corrupted or memory limit reached.",
-                successPass: "Successfully Converted (B&W, Text Saved)",
+                successPass: "Successfully Converted (B&W)",
                 splitNotice: "Split into single pages (>2 pages)[cite: 1]",
                 heavyPageNotice: "⚠️ Adaptive DPI downgrade applied[cite: 1]",
                 noFiles: "No files uploaded",
@@ -124,7 +124,7 @@
                 close: "Close",
                 zoom: "Zoom",
                 originalPage: "Original Page",
-                processedPage: "Processed (Grayscale, Text Saved)"
+                processedPage: "Processed (Grayscale, Smart DPI)"
             }
         };
 
@@ -183,7 +183,7 @@
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale + Text Fix)</span>
+                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
@@ -340,14 +340,14 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Точный перевод пикселей холста в Ч/Б (Grayscale) с усилением контраста
+        // Аккуратный перевод в Ч/Б (Grayscale) без искажения и наслоения шрифтов
         function applyGrayscaleToCanvas(canvas) {
             const ctx = canvas.getContext('2d');
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                gray = gray < 210 ? Math.max(0, gray - 20) : 255; 
+                gray = gray < 210 ? Math.max(0, gray - 10) : 255; 
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
@@ -355,7 +355,7 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
-        // Рендеринг страницы с предварительным извлечением текстовых операторов для гарантии сохранения текста деклараций
+        // Чистый стандартный рендеринг через pdf.js с последующей корректной Ч/Б обработкой холста
         async function processSinglePageOptimized(page, ptWidth, ptHeight) {
             const { jsPDF } = window.jspdf;
             const dpiSteps = [600, 500, 400, 300, 150];
@@ -379,34 +379,10 @@
                 try {
                     const viewport = page.getViewport({ scale: scale });
                     
-                    // Стандартный рендер страницы (включает фоновые и векторные элементы)
+                    // Стандартный рендер страницы без дублирования текста
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-                    // Двойной проход по текстовым операторам для гарантированной отрисовки скрытых шрифтов деклараций
-                    const operatorList = await page.getOperatorList();
-                    const textContent = await page.getTextContent();
-                    
-                    if (textContent && textContent.items) {
-                        ctx.save();
-                        ctx.scale(scale, scale);
-                        ctx.fillStyle = '#000000';
-                        for (let item of textContent.items) {
-                            if (item.str && item.str.trim().length > 0) {
-                                // Извлекаем координаты и параметры шрифта
-                                const tx = item.transform;
-                                ctx.save();
-                                if (tx && tx.length === 6) {
-                                    ctx.transform(tx[0], tx[1], tx[2], tx[3], tx[4], tx[5]);
-                                }
-                                ctx.font = `${item.height || 10}px sans-serif`;
-                                ctx.fillText(item.str, 0, 0);
-                                ctx.restore();
-                            }
-                        }
-                        ctx.restore();
-                    }
-
-                    // Переводим готовый холст в Ч/Б
+                    // Перевод в Ч/Б
                     applyGrayscaleToCanvas(canvas);
 
                     let bestQualityBuffer = null;
@@ -514,7 +490,7 @@
                             prevCanvas.width = 0; prevCanvas.height = 0;
                         }
 
-                        // Оптимизация и конвертация в Ч/Б с принудительной фиксацией текстового слоя
+                        // Оптимизация и конвертация в Ч/Б
                         const res = await processSinglePageOptimized(page, ptWidth, ptHeight);
 
                         if (res.dpi < 600) heavyDetected = true;
