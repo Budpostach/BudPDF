@@ -30,14 +30,12 @@
     <script>
         const LOGO_SRC = "BP_logo.jpg";
 
-        // Отслеживаем клики по всему документу (работает для динамически созданных элементов)
         document.addEventListener('click', (event) => {
             if (event.target && event.target.tagName === 'IMG' && event.target.getAttribute('src') === LOGO_SRC) {
                 window.location.href = 'https://budpdf.vercel.app';
             }
         });
 
-        // Добавляем стиль курсора, как только логотип появится в контейнере #root
         const observer = new MutationObserver(() => {
             const logoImg = document.querySelector(`img[src="${LOGO_SRC}"]`);
             if (logoImg) {
@@ -135,7 +133,7 @@
         let isProcessing = false;
         let activeModal = null;
         
-        const MAX_BYTES = 490 * 1024; // 490 КБ жесткий лимит на файл/страницу
+        const MAX_BYTES = 490 * 1024;
 
         function renderApp() {
             const strings = t[currentLang];
@@ -342,11 +340,8 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Генерация строго пошагового сжатия отдельной страницы согласно правилу: 600 -> 500 -> 400 -> 300 -> 150 DPI
         function optimizeSinglePage(pi) {
             const { jsPDF } = window.jspdf;
-            
-            // Набор DPI в строгой последовательности
             const dpiSteps = [600, 500, 400, 300, 150];
             let bestPageBuffer = null;
             let appliedDpi = 600;
@@ -355,14 +350,12 @@
                 appliedDpi = dpi;
                 const scale = dpi / 72;
                 
-                // Рендерим страницу с текущим DPI
                 const scaledCanvas = document.createElement('canvas');
                 scaledCanvas.width = Math.max(1, Math.floor(pi.originalWidth * scale));
                 scaledCanvas.height = Math.max(1, Math.floor(pi.originalHeight * scale));
                 const sCtx = scaledCanvas.getContext('2d');
                 sCtx.drawImage(pi.baseCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
 
-                // Пытаемся сжать JPEG-качество от 0.9 до 0.05
                 let bestQualityBuffer = null;
                 let lowQ = 0.05, highQ = 0.9;
 
@@ -378,20 +371,18 @@
 
                     if (out.byteLength <= MAX_BYTES) {
                         bestQualityBuffer = out;
-                        lowQ = midQ; // Пробуем улучшить качество в рамках лимита
+                        lowQ = midQ;
                     } else {
-                        highQ = midQ; // Уменьшаем качество
+                        highQ = midQ;
                     }
                 }
 
-                // Если при текущем DPI удалось уложиться в 490 КБ — сохраняем и прерываем цикл (приоритет макс. DPI)
                 if (bestQualityBuffer) {
                     bestPageBuffer = bestQualityBuffer;
                     break;
                 }
             }
 
-            // Экстремальный крайний случай (если даже на 150 DPI файл больше 490КБ — берем минимальное качество)
             if (!bestPageBuffer) {
                 appliedDpi = 150;
                 const scale = 150 / 72;
@@ -431,10 +422,9 @@
                     item.pagesCount = pdfDoc.numPages;
 
                     const extractedPages = [];
-                    // Сначала извлекаем исходные канвасы в максимальном базовом разрешении для последующего пошагового пересчета DPI
                     for (let p = 1; p <= pdfDoc.numPages; p++) {
                         const page = await pdfDoc.getPage(p);
-                        const baseViewport = page.getViewport({ scale: 600 / 72 }); // Базовый рендер на 600 DPI
+                        const baseViewport = page.getViewport({ scale: 600 / 72 });
                         const canvas = document.createElement('canvas');
                         canvas.width = baseViewport.width;
                         canvas.height = baseViewport.height;
@@ -443,7 +433,6 @@
 
                         if (p === 1) item.originalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-                        // Оптимизация под читаемость (опционально оттенки серого или сохранение контраста)
                         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                         const data = imgData.data;
                         for (let j = 0; j < data.length; j += 4) {
@@ -463,8 +452,6 @@
                         });
                     }
 
-                    // НОВОЕ ПРАВИЛО: Если документ содержит более двух страниц, необходимо автоматически разделить его на отдельные страницы
-                    // Каждая страница сохраняется как отдельный файл (или упаковывается в ZIP-архив страниц для удобства скачивания)
                     const zip = new JSZip();
                     let totalSizeSum = 0;
                     let heavyDetected = false;
@@ -477,18 +464,17 @@
                             heavyDetected = true;
                         }
 
-                        // Имя каждой отдельной страницы согласно требованиям
                         const pageFileName = `Page_${pIdx + 1}_of_${extractedPages.length}_${item.file.name.replace(/\.[^/.]+$/, "")}.pdf`;
                         zip.file(pageFileName, optimizationResult.buffer);
                         totalSizeSum += optimizationResult.buffer.byteLength;
                     }
 
-                    item.isSplit = extractedPages.length > 2; // Фиксация разделения при > 2 страницах
+                    item.isSplit = extractedPages.length > 2;
                     item.hasHeavyPages = heavyDetected;
                     
                     const zipBlob = await zip.generateAsync({ type: 'arraybuffer' });
                     item.processedPdfBytes = zipBlob;
-                    item.processedSize = totalSizeSum / extractedPages.length; // Средний размер страницы
+                    item.processedSize = totalSizeSum / extractedPages.length;
                     item.status = 'success';
                     item.statusText = strings.successPass;
 
