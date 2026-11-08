@@ -48,9 +48,9 @@
         const t = {
             ua: {
                 title: "PDF Converter",
-                subtitle: "Підготовка PDF-документів (Правило: >2 сторінок окремо, 600→150 DPI, <490 КБ)",
+                subtitle: "Підготовка PDF (Чорно-біле, >2 стор. окремо, 600→150 DPI, <490 КБ)",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття на сторінки та посторінкова оптимізація до 490 КБ",
+                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація та оптимізація до 490 КБ",
                 settingsTitle: "Параметри обробки",
                 resLabel: "Цільова роздільна здатність",
                 colorLabel: "Колірна схема",
@@ -60,9 +60,9 @@
                 priorityLabel: "Пріоритет",
                 auto: "Авто (< 490 КБ)",
                 enabled: "Увімкнено",
-                maxReadability: "Максимальна читабельність (600 DPI)",
+                maxReadability: "Чорно-білий режим + 600 DPI",
                 convertBtn: "Конвертувати PDF",
-                processing: "Обробка за правилами...",
+                processing: "Обробка (Ч/Б конвертація)...",
                 clearList: "Очистити список",
                 addMore: "Додати ще PDF",
                 downloadAllZip: "Завантажити всі (ZIP)",
@@ -76,21 +76,21 @@
                 preview: "Перегляд",
                 errorPass: "Помилка: файл захищено паролем.",
                 errorCorrupt: "Помилка: файл пошкоджено або неможливо прочитати.",
-                successPass: "Успішно конвертовано за новими правилами",
-                splitNotice: "Розбито на окремі сторінки ( > 2 сторінок )",
-                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI (від 600 до 150)",
+                successPass: "Успішно конвертовано (Ч/Б)",
+                splitNotice: "Розбито на окремі сторінки (>2 стор.)",
+                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
                 zoom: "Збільшити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (Smart DPI, Strict <490KB)"
+                processedPage: "Оброблена (Чорно-біла, Smart DPI)"
             },
             en: {
                 title: "PDF Converter",
-                subtitle: "Preparing PDF Documents (Rule: >2 pages split, 600→150 DPI, <490 KB)",
+                subtitle: "Preparing PDF (Grayscale, >2 pages split, 600→150 DPI, <490 KB)",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic page splitting and optimization under 490 KB",
+                dropSubtext: "Automatic splitting, Grayscale conversion & optimization under 490 KB",
                 settingsTitle: "Processing Parameters",
                 resLabel: "Target Resolution",
                 colorLabel: "Color Mode",
@@ -100,9 +100,9 @@
                 priorityLabel: "Priority",
                 auto: "Auto (< 490 KB)",
                 enabled: "Enabled",
-                maxReadability: "Maximum Readability (600 DPI)",
+                maxReadability: "Grayscale Mode + 600 DPI",
                 convertBtn: "Convert PDF",
-                processing: "Processing with rules...",
+                processing: "Processing (Grayscale)...",
                 clearList: "Clear List",
                 addMore: "Add More PDFs",
                 downloadAllZip: "Download All (ZIP)",
@@ -116,15 +116,15 @@
                 preview: "Preview",
                 errorPass: "Error: File is password protected.",
                 errorCorrupt: "Error: File is corrupted or unreadable.",
-                successPass: "Successfully Converted per rules",
-                splitNotice: "Split into single pages ( > 2 pages )",
-                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied (600 to 150)",
+                successPass: "Successfully Converted (B&W)",
+                splitNotice: "Split into single pages (>2 pages)",
+                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
                 zoom: "Zoom",
                 originalPage: "Original Page",
-                processedPage: "Processed (Smart DPI, Strict <490KB)"
+                processedPage: "Processed (Grayscale, Smart DPI)"
             }
         };
 
@@ -182,6 +182,10 @@
                             </h2>
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span class="text-slate-500">Колірна схема</span>
+                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
+                                </li>
+                                <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
                                     <span class="font-semibold text-emerald-600">Обов'язково</span>
                                 </li>
@@ -196,10 +200,6 @@
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.sizeLimitLabel}</span>
                                     <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict</span>
-                                </li>
-                                <li class="flex justify-between py-1.5">
-                                    <span class="text-slate-500">${strings.priorityLabel}</span>
-                                    <span class="font-semibold text-slate-700">Макс. якість і читабельність</span>
                                 </li>
                             </ul>
                         </div>
@@ -302,13 +302,13 @@
                                 <div class="space-y-2 text-center">
                                     <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${strings.originalPage}</span>
                                     <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 p-2 flex items-center justify-center max-h-[500px]">
-                                        <img src="${activeModal.originalDataUrl}" class="max-h-[450px] object-contain shadow" alt="Original">
+                                        <img src="${activeModal.originalDataUrl}" class="max-h-[450px] object-contain shadow bg-white" alt="Original">
                                     </div>
                                 </div>
                                 <div class="space-y-2 text-center">
                                     <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">${strings.processedPage}</span>
                                     <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 p-2 flex items-center justify-center max-h-[500px]">
-                                        <img src="${activeModal.processedDataUrl}" class="max-h-[450px] object-contain shadow" alt="Processed">
+                                        <img src="${activeModal.processedDataUrl}" class="max-h-[450px] object-contain shadow bg-white" alt="Processed">
                                     </div>
                                 </div>
                             </div>
@@ -340,6 +340,33 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
+        // Функция конвертации канваса в чистый черно-белый (Grayscale) формат с сохранением четкости текста
+        function convertCanvasToGrayscale(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            canvas.width = sourceCanvas.width;
+            canvas.height = sourceCanvas.height;
+            const ctx = canvas.getContext('2d');
+            
+            // Заливка белым фоном
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(sourceCanvas, 0, 0);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Стандартная формула перевода в оттенки серого (Grayscale)
+                let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                // Повышение контрастности текста для предотвращения исчезновения мелких символов
+                gray = gray < 210 ? Math.max(0, gray - 15) : 255; 
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas;
+        }
+
         function optimizeSinglePage(pi) {
             const { jsPDF } = window.jspdf;
             const dpiSteps = [600, 500, 400, 300, 150];
@@ -350,14 +377,17 @@
                 appliedDpi = dpi;
                 const scale = dpi / 72;
                 
+                // Рендерим и сразу переводим в Ч/Б в нужном DPI
                 const scaledCanvas = document.createElement('canvas');
                 scaledCanvas.width = Math.max(1, Math.floor(pi.originalWidth * scale));
                 scaledCanvas.height = Math.max(1, Math.floor(pi.originalHeight * scale));
                 const sCtx = scaledCanvas.getContext('2d');
-                sCtx.drawImage(pi.baseCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+                sCtx.fillStyle = '#FFFFFF';
+                sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                sCtx.drawImage(pi.baseGrayscaleCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
 
                 let bestQualityBuffer = null;
-                let lowQ = 0.05, highQ = 0.9;
+                let lowQ = 0.1, highQ = 0.95;
 
                 for (let iter = 0; iter < 6; iter++) {
                     const midQ = (lowQ + highQ) / 2;
@@ -390,18 +420,20 @@
                 scaledCanvas.width = Math.max(1, Math.floor(pi.originalWidth * scale));
                 scaledCanvas.height = Math.max(1, Math.floor(pi.originalHeight * scale));
                 const sCtx = scaledCanvas.getContext('2d');
-                sCtx.drawImage(pi.baseCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+                sCtx.fillStyle = '#FFFFFF';
+                sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                sCtx.drawImage(pi.baseGrayscaleCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: pi.width > pi.height ? 'l' : 'p',
                     unit: 'pt',
                     format: [pi.width, pi.height]
                 });
-                singleDoc.addImage(scaledCanvas.toDataURL('image/jpeg', 0.05), 'JPEG', 0, 0, pi.width, pi.height);
+                singleDoc.addImage(scaledCanvas.toDataURL('image/jpeg', 0.1), 'JPEG', 0, 0, pi.width, pi.height);
                 bestPageBuffer = singleDoc.output('arraybuffer');
             }
 
-            return { buffer: bestPageBuffer, dpi: appliedDpi };
+            return { buffer: bestPageBuffer, dpi: appliedDpi, canvas: scaledCanvas };
         }
 
         async function startConversion() {
@@ -429,26 +461,25 @@
                         canvas.width = baseViewport.width;
                         canvas.height = baseViewport.height;
                         const ctx = canvas.getContext('2d');
+                        
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
                         await page.render({ canvasContext: ctx, viewport: baseViewport }).promise;
 
-                        if (p === 1) item.originalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-
-                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        const data = imgData.data;
-                        for (let j = 0; j < data.length; j += 4) {
-                            const gray = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
-                            data[j] = gray; data[j + 1] = gray; data[j + 2] = gray;
+                        // Сохраняем оригинал для превью (цветной или как есть в исходнике)
+                        if (p === 1) {
+                            item.originalDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                         }
-                        ctx.putImageData(imgData, 0, 0);
 
-                        if (p === 1) item.processedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        // Обязательный перевод в черно-белый формат (Grayscale)
+                        const grayscaleCanvas = convertCanvasToGrayscale(canvas);
 
                         extractedPages.push({
                             width: page.getViewport({ scale: 1.0 }).width,
                             height: page.getViewport({ scale: 1.0 }).height,
                             originalWidth: page.getViewport({ scale: 1.0 }).width,
                             originalHeight: page.getViewport({ scale: 1.0 }).height,
-                            baseCanvas: canvas
+                            baseGrayscaleCanvas: grayscaleCanvas
                         });
                     }
 
@@ -467,6 +498,11 @@
                         const pageFileName = `Page_${pIdx + 1}_of_${extractedPages.length}_${item.file.name.replace(/\.[^/.]+$/, "")}.pdf`;
                         zip.file(pageFileName, optimizationResult.buffer);
                         totalSizeSum += optimizationResult.buffer.byteLength;
+
+                        // Сохраняем обработанное Ч/Б превью для первой страницы
+                        if (pIdx === 0) {
+                            item.processedDataUrl = optimizationResult.canvas.toDataURL('image/jpeg', 0.85);
+                        }
                     }
 
                     item.isSplit = extractedPages.length > 2;
@@ -496,7 +532,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; 
-            a.download = `Pages_Split_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
+            a.download = `Pages_Split_Grayscale_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
@@ -505,13 +541,13 @@
             const zip = new JSZip();
             for (const item of filesQueue) {
                 if (item.processedPdfBytes) {
-                    zip.file(`Split_Pages_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
+                    zip.file(`Split_Grayscale_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
                 }
             }
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const a = document.createElement('a');
-            a.href = url; a.download = `All_Processed_Documents_Batch.zip`;
+            a.href = url; a.download = `All_Grayscale_Documents_Batch.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
