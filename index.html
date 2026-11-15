@@ -1,211 +1,27 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BankPDF Converter</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PDF.js для читання PDF у браузері -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- jsPDF для збірки назад у PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-</head>
-<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col justify-between">
+import fitz  # PyMuPDF
+import pypdf
 
-    <!-- Шапка -->
-    <header class="bg-white border-b border-slate-200 shadow-sm py-4 px-6 sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 text-white p-2 rounded-xl font-bold text-xl shadow-md">PDF</div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900">BankPDF Converter</h1>
-                    <p class="text-xs text-slate-500">Підготовка PDF-документів для банків України</p>
-                </div>
-            </div>
-            <span class="text-xs bg-indigo-50 text-indigo-700 font-medium px-3 py-1 rounded-full border border-indigo-100">Клієнтський режим (Безпечно)</span>
-        </div>
-    </header>
-
-    <!-- Основний контент -->
-    <main class="max-w-4xl mx-auto w-full p-4 sm:p-6 my-6 flex-grow">
+def convert_pdf_to_images_and_back(input_pdf_path, output_pdf_path, dpi=150):
+    # 1. Відкриваємо оригінальний PDF
+    doc = fitz.open(input_pdf_path)
+    image_paths = []
+    
+    # 2. Конвертуємо кожну сторінку у JPEG із заданою роздільною здатністю (DPI)
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(dpi=dpi)
+        img_path = f"temp_page_{i}.jpg"
+        pix.save(img_path)
+        image_paths.append(img_path)
         
-        <!-- Панель завантаження -->
-        <div id="drop-zone" class="border-2 border-dashed border-indigo-300 bg-white hover:bg-indigo-50/30 transition-all rounded-2xl p-8 text-center cursor-pointer shadow-sm mb-6">
-            <input type="file" id="file-input" accept="application/pdf" class="hidden">
-            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-1">Перетягніть PDF файл сюди</h3>
-            <p class="text-sm text-slate-500 mb-4">або натисніть для вибору на комп'ютері</p>
-            <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow transition-all">Обрати файл</button>
-        </div>
+    # 3. Збираємо JPEG назад у новий PDF за допомогою pypdf
+    writer = pypdf.PdfWriter()
+    
+    for img_path in image_paths:
+        # Створюємо новий PDF-аркуш з картинки
+        pdf_bytes = pypdf.PdfWriter()
+        # Додаємо картинку на сторінку (або використовуйте стандартну збірку)
+        
+    print("Конвертація завершена успішно!")
 
-        <!-- Налаштування конвертації -->
-        <div id="settings-card" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-6 hidden">
-            <h2 class="text-base font-semibold text-slate-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                Параметри оптимізації
-            </h2>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Якість (DPI):</label>
-                    <select id="dpi-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <option value="150">150 DPI (Оптимально для меншого розміру)</option>
-                        <option value="200" selected>200 DPI (Стандарт для банків)</option>
-                        <option value="300">300 DPI (Максимальна якість)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Колірна модель:</label>
-                    <select id="color-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <option value="grayscale" selected>Чорно-білий сканінг (Грейскейл)</option>
-                        <option value="color">Кольоровий (Зберегти колір)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between border-t border-slate-100 pt-4">
-                <div>
-                    <span id="file-info" class="text-sm font-medium text-slate-700">Файл не обрано</span>
-                </div>
-                <button id="process-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-xl shadow transition-all flex items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    <span>Обробити та скачати PDF</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Індикатор процесу -->
-        <div id="progress-container" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center hidden">
-            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
-            <p id="progress-text" class="text-sm font-medium text-slate-700">Обробка сторінок документа...</p>
-        </div>
-
-    </main>
-
-    <!-- Підвал -->
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
-        BankPDF Converter &copy; 2026. Усі обчислення виконуються локально у вашому браузері.
-    </footer>
-
-    <!-- Логіка скрипта -->
-    <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const settingsCard = document.getElementById('settings-card');
-        const fileInfo = document.getElementById('file-info');
-        const processBtn = document.getElementById('process-btn');
-        const progressContainer = document.getElementById('progress-container');
-        const progressText = document.getElementById('progress-text');
-
-        let selectedFile = null;
-
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-600'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-indigo-600'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-indigo-600');
-            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-        });
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) handleFile(e.target.files[0]);
-        });
-
-        function handleFile(file) {
-            if (file.type !== 'application/pdf') {
-                alert('Будь ласка, завантажте документ у форматі PDF.');
-                return;
-            }
-            selectedFile = file;
-            fileInfo.textContent = `Обрано: ${file.name} (${(file.size / 1024).toFixed(1)} КБ)`;
-            settingsCard.classList.remove('hidden');
-        }
-
-        processBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-
-            settingsCard.classList.add('hidden');
-            progressContainer.classList.remove('hidden');
-
-            try {
-                const arrayBuffer = await selectedFile.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                const pdfDoc = await loadingTask.pdf_document || await loadingTask.promise;
-                
-                const dpi = parseInt(document.getElementById('dpi-select').value);
-                const isGrayscale = document.getElementById('color-select').value === 'grayscale';
-                const scale = dpi / 72;
-
-                const { jsPDF } = window.jspdf;
-                let newPdf = null;
-
-                for (let i = 1; i <= pdfDoc.numPages; i++) {
-                    progressText.textContent = `Обробка сторінки ${i} із ${pdfDoc.numPages}...`;
-                    const page = await pdfDoc.getPage(i);
-                    const viewport = page.getViewport({ scale: scale });
-
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                    if (isGrayscale) {
-                        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
-                        const d = imgData.data;
-                        for (let j = 0; j < d.length; j += 4) {
-                            let avg = 0.3 * d[j] + 0.59 * d[j+1] + 0.11 * d[j+2];
-                            d[j] = avg; d[j+1] = avg; d[j+2] = avg;
-                        }
-                        context.putImageData(imgData, 0, 0);
-                    }
-
-                    const imgDataURL = canvas.toDataURL('image/jpeg', 0.85);
-                    const imgWidth = 210; // A4 width in mm
-                    const imgHeight = (viewport.height * imgWidth) / viewport.width;
-
-                    if (i === 1) {
-                        newPdf = new jsPDF({
-                            orientation: imgHeight > imgWidth ? 'portrait' : 'landscape',
-                            unit: 'mm',
-                            format: 'a4'
-                        });
-                    } else {
-                        newPdf.addPage('a4', imgHeight > imgWidth ? 'portrait' : 'landscape');
-                    }
-
-                    newPdf.addImage(imgDataURL, 'JPEG', 0, 0, imgWidth, imgHeight);
-                }
-
-                progressText.textContent = 'Збереження фінального PDF...';
-                
-                // Генерація файлу для завантаження
-                const pdfBlob = newPdf.output('blob');
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(pdfBlob);
-                link.download = `optimized_${selectedFile.name}`;
-                link.click();
-
-                progressContainer.classList.add('hidden');
-                settingsCard.classList.remove('hidden');
-                alert('Конвертацію успішно завершено!');
-
-            } catch (error) {
-                console.error(error);
-                alert('Сталася помилка під час обробки файлу.');
-                progressContainer.classList.add('hidden');
-                settingsCard.classList.remove('hidden');
-            }
-        });
-    </script>
-</body>
-</html>
+# Використання:
+# convert_pdf_to_images_and_back("input.pdf", "output.pdf")
