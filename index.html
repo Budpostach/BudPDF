@@ -49,16 +49,16 @@
         const t = {
             ua: {
                 title: "BankPDF Converter",
-                subtitle: "Підготовка PDF-документів для банків України (Ч/Б, розділення сторінок, <490 КБ)",
+                subtitle: "Підготовка PDF-документів для банків України (Ч/Б скан, розділення, <490 КБ)",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття, чорно-біла конвертація та оптимізація до 490 КБ",
-                settingsTitle: "Параметри обробки",
+                dropSubtext: "Автоматичне сканування, розбиття та оптимізація до 490 КБ",
+                settingsTitle: "Параметри сканера",
                 resLabel: "Цільова роздільна здатність",
-                colorLabel: "Колірна схема",
+                colorLabel: "Режим сканування",
                 sizeLimitLabel: "Ліміт розміру сторінки",
                 qualityLabel: "Алгоритм DPI (600→500→400→300→150)",
-                convertBtn: "Конвертувати PDF",
-                processing: "Обробка документів...",
+                convertBtn: "Відсканувати та конвертувати",
+                processing: "Сканування документів...",
                 clearList: "Очистити список",
                 addMore: "Додати ще PDF",
                 downloadAllZip: "Завантажити всі (ZIP)",
@@ -72,27 +72,27 @@
                 preview: "Перегляд",
                 errorPass: "Помилка: файл захищено паролем.",
                 errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті браузера.",
-                successPass: "Успішно конвертовано (Скан-копія)",
+                successPass: "Успішно відскановано (Ч/Б)",
                 splitNotice: "Розбито на окремі сторінки",
                 heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
                 originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (Скан-копія, Smart DPI)"
+                processedPage: "Оброблена (Ч/Б Скан-копія)"
             },
             en: {
                 title: "BankPDF Converter",
-                subtitle: "Preparing PDF documents for Ukrainian banks (B&W, page splitting, <490 KB)",
+                subtitle: "Preparing PDF documents for Ukrainian banks (B&W scan, splitting, <490 KB)",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic splitting, Black & White conversion & optimization under 490 KB",
-                settingsTitle: "Processing Parameters",
+                dropSubtext: "Automatic scanning, splitting & optimization under 490 KB",
+                settingsTitle: "Scanner Parameters",
                 resLabel: "Target Resolution",
-                colorLabel: "Color Mode",
+                colorLabel: "Scan Mode",
                 sizeLimitLabel: "Max Page Size",
                 qualityLabel: "DPI Steps (600→500→400→300→150)",
-                convertBtn: "Convert PDF",
-                processing: "Processing documents...",
+                convertBtn: "Scan & Convert PDF",
+                processing: "Scanning documents...",
                 clearList: "Clear List",
                 addMore: "Add More PDFs",
                 downloadAllZip: "Download All (ZIP)",
@@ -106,14 +106,14 @@
                 preview: "Preview",
                 errorPass: "Error: File is password protected.",
                 errorCorrupt: "Error: File is corrupted or browser memory limit reached.",
-                successPass: "Successfully Converted (Scan)",
+                successPass: "Successfully Scanned (B&W)",
                 splitNotice: "Split into single pages",
                 heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
                 originalPage: "Original Page",
-                processedPage: "Processed (Scan, Smart DPI)"
+                processedPage: "Processed (B&W Scan)"
             }
         };
 
@@ -158,7 +158,7 @@
                              ondrop="handleFileDrop(event)">
                             <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
                             <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition">
-                                <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                                <i data-lucide="printer" class="w-8 h-8"></i>
                             </div>
                             <p class="text-sm font-semibold text-slate-700 mb-1">${strings.dropZoneText}</p>
                             <p class="text-xs text-slate-400">${strings.dropSubtext}</p>
@@ -171,16 +171,16 @@
                             </h2>
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Ч/Б Скан-копія (Grayscale)</span>
+                                    <span class="text-slate-500">Режим сканера</span>
+                                    <span class="font-semibold text-slate-900">Ч/Б Скан (Grayscale)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Підтримка CJK / Китайських ієроглифів</span>
-                                    <span class="font-semibold text-emerald-600">CMap + Fonts Включено</span>
+                                    <span class="text-slate-500">Підтримка CJK / Ієроглифів</span>
+                                    <span class="font-semibold text-emerald-600">CMap + Вбудовані шрифти</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок</span>
-                                    <span class="font-semibold text-emerald-600">Обов'язково (кожна сторінка окремо)</span>
+                                    <span class="font-semibold text-emerald-600">Обов'язково (кожна окремо)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.resLabel}</span>
@@ -200,7 +200,7 @@
                         <button onclick="startConversion()" 
                             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             ${filesQueue.length === 0 || isProcessing ? 'disabled' : ''}>
-                            <i data-lucide="${isProcessing ? 'loader-2' : 'cpu'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
+                            <i data-lucide="${isProcessing ? 'loader-2' : 'scan'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
                             ${isProcessing ? strings.processing : strings.convertBtn}
                         </button>
                     </div>
@@ -277,7 +277,7 @@
                                         </button>
                                     </div>
                                 ` : ''}
-                            `}`}
+                            `}
                         </div>
                     </div>
                 </main>
@@ -333,16 +333,16 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Умный фильтр скан-копии (Grayscale): сохраняет всю текстовую информацию, иероглифы и печати, убирая цветовой шум
-        function applyGrayscaleToCtx(ctx, width, height) {
+        // Фильтр сканера (Grayscale): очищает фон до кипенно-белого и делает весь текст, иероглифы и печати чёткими
+        function applyScannerFilterToCtx(ctx, width, height) {
             const imgData = ctx.getImageData(0, 0, width, height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
                 if (gray >= 248) {
-                    gray = 255; // Идеально белый фон
+                    gray = 255; // Абсолютно чистый белый фон бумажного листа
                 } else {
-                    gray = Math.max(0, Math.round(gray * 0.85)); // Насыщенный контраст для текста и печатей
+                    gray = Math.max(0, Math.round(gray * 0.85)); // Насыщенный контраст для текста, таблиц и печатей сканера
                 }
                 data[i] = gray;
                 data[i + 1] = gray;
@@ -351,7 +351,7 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
-        // Постраничный рендеринг и оптимизация DPI для попадания в лимит <490 КБ
+        // Постраничное «сканирование» и адаптивная упаковка в PDF с соблюдением лимита <490 КБ
         async function processSinglePageOptimized(page, ptWidth, ptHeight) {
             const { jsPDF } = window.jspdf;
             const dpiSteps = [600, 500, 400, 300, 150];
@@ -379,7 +379,7 @@
                         annotationMode: pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.ENABLE_FORMS : 2
                     }).promise;
                     
-                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
+                    applyScannerFilterToCtx(ctx, canvas.width, canvas.height);
 
                     let bestQualityBuffer = null;
                     let lowQ = 0.1, highQ = 0.95;
@@ -415,7 +415,7 @@
                 canvas.width = 0; canvas.height = 0;
             }
 
-            // Запасной вариант при 150 DPI
+            // Защитный резерв при 150 DPI
             if (!bestPageBuffer) {
                 appliedDpi = 150;
                 const scale = 150 / 72;
@@ -433,7 +433,7 @@
                     annotationMode: pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.ENABLE_FORMS : 2
                 }).promise;
                 
-                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
+                applyScannerFilterToCtx(ctx, canvas.width, canvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: ptWidth > ptHeight ? 'l' : 'p',
@@ -463,7 +463,7 @@
                 try {
                     const arrayBuffer = await item.file.arrayBuffer();
                     
-                    // Безопасная инициализация PDF.js с поддержкой китайских иероглифов (CMap и Standard Fonts)
+                    // Инициализация сканера с полной поддержкой CMap/CJK (для китайских иероглифов)
                     const loadingTask = pdfjsLib.getDocument({
                         data: arrayBuffer,
                         cMapUrl: `${PDFJS_CDN_BASE}/cmaps/`,
@@ -525,7 +525,7 @@
                     item.statusText = strings.successPass;
 
                 } catch (err) {
-                    console.error("PDF processing error:", err);
+                    console.error("PDF scanning error:", err);
                     item.status = 'error';
                     item.statusText = strings.errorCorrupt;
                 }
@@ -542,7 +542,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; 
-            a.download = `BW_Split_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
+            a.download = `Scanned_BW_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
@@ -551,13 +551,13 @@
             const zip = new JSZip();
             for (const item of filesQueue) {
                 if (item.processedPdfBytes) {
-                    zip.file(`BW_Split_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
+                    zip.file(`Scanned_BW_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
                 }
             }
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const a = document.createElement('a');
-            a.href = url; a.download = `All_BW_Documents_Batch.zip`;
+            a.href = url; a.download = `All_Scanned_Documents_Batch.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
