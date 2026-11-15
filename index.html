@@ -6,40 +6,395 @@
     <title>BankPDF Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Підключаємо PDF.js з підтримкою CMap для китайських шрифтів (Identity-H / SimSun) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        .drop-active { border-color: #f35c09 !important; background-color: #fff7ed !important; }
+    </style>
 </head>
 <body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between">
+
     <div id="root" class="flex-grow flex flex-col"></div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
+        BankPDF Converter &bull; ПП «Будпостач»
+    </footer>
+
     <script>
-        const MAX_BYTES = 490 * 1024;
+        // CDN для CMap файлів китайських шрифтів (SimSun, Adobe-GB1 тощо)
+        const PDFJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
+        const MAX_BYTES = 490 * 1024; // Суворий ліміт 490 КБ на сторінку
+
         let filesQueue = [];
         let isProcessing = false;
+        let previewModalData = null;
 
         function renderApp() {
-            document.getElementById('root').innerHTML = `
-                <header class="bg-slate-900 text-white shadow-md p-4">
-                    <h1 class="text-xl font-bold">BankPDF Converter</h1>
-                    <p class="text-xs text-slate-300">Підготовка PDF-документів для банків України</p>
-                </header>
-                <main class="max-w-4xl mx-auto p-6 w-full space-y-6">
-                    <div class="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center cursor-pointer"
-                         onclick="document.getElementById('fileInput').click()">
-                        <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
-                        <p class="font-semibold text-slate-700">Натисніть для вибору PDF-файлу</p>
+            const root = document.getElementById('root');
+            
+            root.innerHTML = `
+                <header class="bg-slate-900 text-white shadow-md">
+                    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-[#f35c09] text-white font-bold flex items-center justify-center shadow-inner text-lg">
+                                BP
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold tracking-tight">BankPDF Converter</h1>
+                                <p class="text-xs text-slate-300">Підготовка PDF-документів для банків України</p>
+                            </div>
+                        </div>
+                        <div class="hidden sm:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+                            <i data-lucide="languages" class="w-4 h-4 text-orange-400"></i>
+                            <span>Розпізнавання китайських шрифтів (Identity-H / SimSun)</span>
+                        </div>
                     </div>
-                    <button onclick="startConversion()" class="w-full bg-[#f35c09] text-white font-semibold py-3 rounded-xl">
-                        Конвертувати у Ч/Б (&le;490 КБ)
-                    </button>
+                </header>
+
+                <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 flex flex-col space-y-6">
+                        <div id="dropZone"
+                             class="bg-white rounded-2xl shadow-sm border-2 border-dashed border-slate-300 p-8 flex flex-col items-center text-center cursor-pointer hover:border-[#f35c09] transition"
+                             onclick="document.getElementById('fileInput').click()"
+                             ondragover="event.preventDefault(); this.classList.add('drop-active');"
+                             ondragleave="this.classList.remove('drop-active');"
+                             ondrop="handleFileDrop(event)">
+                            <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
+                            <div class="w-16 h-16 bg-orange-50 text-[#f35c09] rounded-2xl flex items-center justify-center mb-4">
+                                <i data-lucide="file-up" class="w-8 h-8"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-700 mb-1">Перетягніть PDF-файли сюди або натисніть для вибору</p>
+                            <p class="text-xs text-slate-400">Повна підтримка декларацій з ієрогліфами та печатками</p>
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Параметри конвертації</h3>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-600">Шрифти CMap:</span>
+                                <span class="font-semibold text-emerald-600">Увімкнено (SimSun)</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-600">Ліміт сторінки:</span>
+                                <span class="font-semibold text-emerald-600">&le; 490 КБ</span>
+                            </div>
+                            <div class="pt-2 border-t border-slate-100">
+                                <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                                    <input type="checkbox" id="preserveTextMode" checked class="rounded text-[#f35c09] focus:ring-[#f35c09]">
+                                    <span>Делікатне вибілювання фону (чіткий текст і печатки)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button onclick="startConversion()" 
+                            class="w-full bg-[#f35c09] hover:bg-orange-700 text-white font-semibold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            ${filesQueue.length === 0 || isProcessing ? 'disabled' : ''}>
+                            <i data-lucide="${isProcessing ? 'loader-2' : 'scan'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
+                            ${isProcessing ? 'Обробка ієрогліфів та шарів...' : 'Конвертувати у Ч/Б (<490 КБ)'}
+                        </button>
+                    </div>
+
+                    <div class="lg:col-span-2 flex flex-col space-y-6">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-base font-bold text-slate-800">Черга документів (${filesQueue.length})</h2>
+                                ${filesQueue.length > 0 && !isProcessing ? `
+                                    <button onclick="clearQueue()" class="text-xs text-slate-400 hover:text-rose-600 transition">Очистити все</button>
+                                ` : ''}
+                            </div>
+
+                            ${filesQueue.length === 0 ? `
+                                <div class="flex-grow flex flex-col items-center justify-center py-16 text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                                    <i data-lucide="files" class="w-10 h-10 mb-2 opacity-40"></i>
+                                    <p class="text-sm">Немає завантажених файлів</p>
+                                </div>
+                            ` : `
+                                <div class="space-y-4">
+                                    ${filesQueue.map((item, index) => `
+                                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 transition">
+                                            <div class="flex flex-wrap justify-between items-center gap-3">
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <i data-lucide="file-text" class="w-4 h-4 text-[#f35c09] shrink-0"></i>
+                                                        <span class="font-semibold text-sm truncate">${item.file.name}</span>
+                                                    </div>
+                                                    <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                                        <span>Статус: <b class="${item.status === 'success' ? 'text-emerald-600' : item.status === 'error' ? 'text-rose-600' : 'text-amber-600'}">${item.statusText}</b></span>
+                                                        ${item.numPages ? `<span>Сторінок: <b>${item.numPages}</b></span>` : ''}
+                                                        ${item.maxPageSize ? `<span>Макс. сторінка: <b class="text-emerald-600">${(item.maxPageSize / 1024).toFixed(1)} КБ</b></span>` : ''}
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-2 shrink-0">
+                                                    ${item.status === 'success' ? `
+                                                        <button onclick="openPreview(${index})" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1.5">
+                                                            <i data-lucide="eye" class="w-4 h-4"></i> Перегляд
+                                                        </button>
+                                                        <button onclick="downloadCombinedPdf(${index})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5">
+                                                            <i data-lucide="file-down" class="w-4 h-4"></i> PDF
+                                                        </button>
+                                                        <button onclick="downloadZip(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5">
+                                                            <i data-lucide="archive" class="w-4 h-4"></i> ZIP
+                                                        </button>
+                                                    ` : ''}
+                                                    <button onclick="removeFile(${index})" ${isProcessing ? 'disabled' : ''} class="text-slate-400 hover:text-rose-600 p-2 disabled:opacity-30">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            ${item.pagesInfo && item.pagesInfo.length > 0 ? `
+                                                <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex flex-wrap gap-1.5">
+                                                    ${item.pagesInfo.map(p => `
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-white border border-slate-200 text-slate-600">
+                                                            Стор. ${p.pageNum}: <b class="ml-1 text-slate-800">${(p.size / 1024).toFixed(0)} КБ</b> (${p.dpi} DPI)
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
                 </main>
+
+                ${previewModalData ? renderPreviewModal() : ''}
+            `;
+            lucide.createIcons();
+        }
+
+        function renderPreviewModal() {
+            const { fileName, pageIdx, totalPages, previewImgUrl, pageSize, dpi } = previewModalData;
+            return `
+                <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this) closePreview()">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                            <div>
+                                <h3 class="font-bold text-sm text-slate-800">${fileName}</h3>
+                                <p class="text-xs text-slate-500">Сторінка ${pageIdx + 1} з ${totalPages} &bull; Вага: <b>${(pageSize / 1024).toFixed(1)} КБ</b> &bull; <b>${dpi} DPI</b></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changePreviewPage(-1)" ${pageIdx === 0 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&larr;</button>
+                                <button onclick="changePreviewPage(1)" ${pageIdx >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&rarr;</button>
+                                <button onclick="closePreview()" class="ml-2 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 overflow-auto bg-slate-200 flex-grow flex justify-center items-start">
+                            <img src="${previewImgUrl}" alt="Preview" class="max-w-full shadow-lg border border-slate-300 bg-white">
+                        </div>
+                    </div>
+                </div>
             `;
         }
-        function handleFileSelect(e) { filesQueue = Array.from(e.target.files).map(file => ({ file })); alert('Файл завантажено в чергу!'); }
-        function startConversion() { alert('Готово до конвертації'); }
+
+        function handleFileSelect(e) { addFiles(Array.from(e.target.files)); e.target.value = ''; }
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drop-active');
+            addFiles(Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
+        }
+        function addFiles(newFiles) {
+            newFiles.forEach(file => filesQueue.push({ file, status: 'pending', statusText: 'В черзі', zipBytes: null, combinedPdfBytes: null, pagesInfo: [] }));
+            renderApp();
+        }
+        function removeFile(i) { filesQueue.splice(i, 1); renderApp(); }
+        function clearQueue() { filesQueue = []; renderApp(); }
+
+        function openPreview(fileIndex) {
+            const item = filesQueue[fileIndex];
+            if (!item || !item.pagesInfo.length) return;
+            const p = item.pagesInfo[0];
+            previewModalData = { fileIndex, fileName: item.file.name, pageIdx: 0, totalPages: item.pagesInfo.length, previewImgUrl: p.previewDataUrl, pageSize: p.size, dpi: p.dpi };
+            renderApp();
+        }
+        function changePreviewPage(delta) {
+            if (!previewModalData) return;
+            const item = filesQueue[previewModalData.fileIndex];
+            const nextIdx = previewModalData.pageIdx + delta;
+            if (nextIdx >= 0 && nextIdx < item.pagesInfo.length) {
+                const p = item.pagesInfo[nextIdx];
+                previewModalData.pageIdx = nextIdx;
+                previewModalData.previewImgUrl = p.previewDataUrl;
+                previewModalData.pageSize = p.size;
+                previewModalData.dpi = p.dpi;
+                renderApp();
+            }
+        }
+        function closePreview() { previewModalData = null; renderApp(); }
+
+        function applyScannerFilter(ctx, w, h, gentleMode) {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                const minChannel = Math.min(r, g, b);
+                const luma = r * 0.299 + g * 0.587 + b * 0.114;
+                let gray = Math.min(luma, (luma * 0.65 + minChannel * 0.35));
+
+                if (gentleMode) {
+                    if (gray >= 246) gray = 255;
+                    else gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.35))));
+                } else {
+                    if (gray >= 238) gray = 255;
+                    else gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.6))));
+                }
+
+                data[i] = gray; data[i + 1] = gray; data[i + 2] = gray; data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        async function renderPageToBW(page, ptW, ptH, gentleMode) {
+            const { jsPDF } = window.jspdf;
+            const dpiSteps = [180, 150, 130, 110, 90];
+
+            for (const dpi of dpiSteps) {
+                const scale = dpi / 72;
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.floor(ptW * scale));
+                canvas.height = Math.max(1, Math.floor(ptH * scale));
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Рендеримо сторінку зі всіма шарами та шрифтами CMap
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: page.getViewport({ scale }),
+                    annotationMode: 2
+                }).promise;
+
+                applyScannerFilter(ctx, canvas.width, canvas.height, gentleMode);
+
+                for (let q = 0.8; q >= 0.3; q -= 0.15) {
+                    const quality = Number(q.toFixed(2));
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const singleDoc = new jsPDF({
+                        orientation: ptW > ptH ? 'l' : 'p',
+                        unit: 'pt',
+                        format: [ptW, ptH],
+                        compress: true
+                    });
+                    singleDoc.addImage(dataUrl, 'JPEG', 0, 0, ptW, ptH, undefined, 'FAST');
+                    const pdfArrayBuffer = singleDoc.output('arraybuffer');
+
+                    if (pdfArrayBuffer.byteLength <= MAX_BYTES) {
+                        canvas.width = 0; canvas.height = 0;
+                        return { pdfBytes: pdfArrayBuffer, dataUrl, ptW, ptH, dpi, size: pdfArrayBuffer.byteLength };
+                    }
+                }
+                canvas.width = 0; canvas.height = 0;
+            }
+            throw new Error("Не вдалося вкластися у ліміт 490 КБ");
+        }
+
+        async function startConversion() {
+            if (isProcessing) return;
+            isProcessing = true;
+            const gentleMode = document.getElementById('preserveTextMode')?.checked ?? true;
+            renderApp();
+
+            const { jsPDF } = window.jspdf;
+
+            for (let i = 0; i < filesQueue.length; i++) {
+                const item = filesQueue[i];
+                if (item.status === 'success') continue;
+
+                item.status = 'processing';
+                item.statusText = 'Завантаження таблиць CMap і ієрогліфів...';
+                item.pagesInfo = [];
+                renderApp();
+
+                try {
+                    const arrayBuffer = await item.file.arrayBuffer();
+                    
+                    // КЛЮЧОВИЙ МОМЕНТ: підключаємо зовнішні CMap таблиці Adobe для коректного маппінгу китайських шрифтів (SimSun/Identity-H)
+                    const loadingTask = pdfjsLib.getDocument({
+                        data: arrayBuffer,
+                        cMapUrl: `${PDFJS_CDN_BASE}/cmaps/`,
+                        cMapPacked: true,
+                        standardFontDataUrl: `${PDFJS_CDN_BASE}/standard_fonts/`,
+                        useSystemFonts: true
+                    });
+
+                    const pdfDoc = await loadingTask.promise;
+                    item.numPages = pdfDoc.numPages;
+
+                    const zip = new JSZip();
+                    let combinedDoc = null;
+                    let maxPageSize = 0;
+                    const baseName = item.file.name.replace(/\.pdf$/i, '');
+
+                    for (let p = 1; p <= pdfDoc.numPages; p++) {
+                        item.statusText = `Конвертація сторінки ${p} із ${pdfDoc.numPages}...`;
+                        renderApp();
+
+                        const page = await pdfDoc.getPage(p);
+                        const viewport = page.getViewport({ scale: 1.0 });
+                        const res = await renderPageToBW(page, viewport.width, viewport.height, gentleMode);
+
+                        zip.file(`${baseName}_page_${p}_BW.pdf`, res.pdfBytes);
+
+                        if (p === 1) {
+                            combinedDoc = new jsPDF({
+                                orientation: res.ptW > res.ptH ? 'l' : 'p',
+                                unit: 'pt',
+                                format: [res.ptW, res.ptH],
+                                compress: true
+                            });
+                        } else {
+                            combinedDoc.addPage([res.ptW, res.ptH], res.ptW > res.ptH ? 'l' : 'p');
+                        }
+                        combinedDoc.addImage(res.dataUrl, 'JPEG', 0, 0, res.ptW, res.ptH, undefined, 'FAST');
+
+                        if (res.size > maxPageSize) maxPageSize = res.size;
+                        item.pagesInfo.push({ pageNum: p, size: res.size, dpi: res.dpi, previewDataUrl: res.dataUrl });
+                    }
+
+                    item.zipBytes = await zip.generateAsync({ type: 'arraybuffer' });
+                    item.combinedPdfBytes = combinedDoc.output('arraybuffer');
+                    item.maxPageSize = maxPageSize;
+                    item.status = 'success';
+                    item.statusText = 'Готово (ієрогліфи збережено, <490 КБ)';
+                } catch (err) {
+                    console.error(err);
+                    item.status = 'error';
+                    item.statusText = `Помилка: ${err.message || 'не вдалося'}`;
+                }
+                renderApp();
+            }
+            isProcessing = false;
+            renderApp();
+        }
+
+        function downloadZip(index) {
+            const item = filesQueue[index];
+            if (!item?.zipBytes) return;
+            const blob = new Blob([item.zipBytes], { type: 'application/zip' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_pages.zip`; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadCombinedPdf(index) {
+            const item = filesQueue[index];
+            if (!item?.combinedPdfBytes) return;
+            const blob = new Blob([item.combinedPdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_full.pdf`; a.click();
+            URL.revokeObjectURL(url);
+        }
+
         renderApp();
     </script>
 </body>
