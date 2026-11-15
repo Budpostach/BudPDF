@@ -1,56 +1,46 @@
-import fitz  # PyMuPDF
-import pypdf
-import io
+<!DOCTYPE html>
+<html lang="uk" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankPDF Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between">
+    <div id="root" class="flex-grow flex flex-col"></div>
+    <script>
+        const MAX_BYTES = 490 * 1024;
+        let filesQueue = [];
+        let isProcessing = false;
 
-def render_chinese_customs_pdf(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
-    # PyMuPDF (fitz) единственный движок, который умеет корректно расшифровывать Identity-H / SimSun CID потоки
-    doc = fitz.open(input_pdf_path)
-    writer = pypdf.PdfWriter()
-
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        best_page_bytes = None
-        
-        # Перебираем DPI для достижения идеального качества и соблюдения лимита < 490 КБ
-        for dpi in [180, 150, 120, 100]:
-            zoom = dpi / 72
-            mat = fitz.Matrix(zoom, zoom)
-            
-            # Рендерим всю страницу целиком (включая расшифрованные PyMuPDF китайские глифы и печати) в Grayscale
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
-            
-            best_q_bytes = None
-            for q in [75, 60, 45, 30]:
-                img_data = pix.tobytes("jpeg", jpg_quality=q)
-                img_doc = fitz.open("pdf", img_data)
-                pdf_bytes = img_doc.convert_to_pdf()
-                
-                if len(pdf_bytes) <= max_bytes:
-                    best_q_bytes = pdf_bytes
-                    if q >= 50:
-                        break
-            
-            if best_q_bytes:
-                best_page_bytes = best_q_bytes
-                break
-                
-        if not best_page_bytes:
-            zoom = 90 / 72
-            mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
-            img_data = pix.tobytes("jpeg", jpg_quality=20)
-            img_doc = fitz.open("pdf", img_data)
-            best_page_bytes = img_doc.convert_to_pdf()
-
-        single_page_reader = pypdf.PdfReader(io.BytesIO(best_page_bytes))
-        writer.add_page(single_page_reader.pages[0])
-
-    with open(output_pdf_path, "wb") as f:
-        writer.write(f)
-    print(f"Готово! Все данные и иероглифы успешно запечены в скан: {output_pdf_path}")
-
-# Запуск:
-render_chinese_customs_pdf(
-    "export documents for shipment of CI-BP20260812.pdf", 
-    "export_documents_with_text.pdf"
-)
+        function renderApp() {
+            document.getElementById('root').innerHTML = `
+                <header class="bg-slate-900 text-white shadow-md p-4">
+                    <h1 class="text-xl font-bold">BankPDF Converter</h1>
+                    <p class="text-xs text-slate-300">Підготовка PDF-документів для банків України</p>
+                </header>
+                <main class="max-w-4xl mx-auto p-6 w-full space-y-6">
+                    <div class="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center cursor-pointer"
+                         onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
+                        <p class="font-semibold text-slate-700">Натисніть для вибору PDF-файлу</p>
+                    </div>
+                    <button onclick="startConversion()" class="w-full bg-[#f35c09] text-white font-semibold py-3 rounded-xl">
+                        Конвертувати у Ч/Б (&le;490 КБ)
+                    </button>
+                </main>
+            `;
+        }
+        function handleFileSelect(e) { filesQueue = Array.from(e.target.files).map(file => ({ file })); alert('Файл завантажено в чергу!'); }
+        function startConversion() { alert('Готово до конвертації'); }
+        renderApp();
+    </script>
+</body>
+</html>
