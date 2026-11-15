@@ -1,222 +1,52 @@
-<!DOCTYPE html>
-<html lang="uk" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BankPDF Converter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PDF.js с поддержкой CMap для иероглифов -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-</head>
-<body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between">
+import pypdf
+import io
+import fitz  # PyMuPDF
 
-    <div id="root" class="flex-grow flex flex-col"></div>
+def convert_pdf_to_strict_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
+    doc = fitz.open(input_pdf_path)
+    writer = pypdf.PdfWriter()
 
-    <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
-        BankPDF Converter &bull; Budpostach
-    </footer>
-
-    <script>
-        const LOGO_SRC = "BP_logo.jpg";
-        const PDFJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
-        const MAX_BYTES = 490 * 1024;
-
-        let currentLang = 'ua';
-        let filesQueue = [];
-        let isProcessing = false;
-        let activeModal = null;
-
-        const t = {
-            ua: {
-                title: "BankPDF Converter",
-                subtitle: "Підготовка PDF-документів для банків України (Ч/Б скан, <490 КБ)",
-                dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Апаратний скан із збереженням ієроглифів, таблиць та печаток",
-                convertBtn: "Відсканувати у Ч/Б (<490 КБ)",
-                processing: "Сканування сторінок...",
-                fileListTitle: "Черга документів",
-                pages: "Сторінок",
-                status: "Статус",
-                downloadZip: "Завантажити ZIP",
-                preview: "Перегляд",
-                errorPass: "Помилка: файл захищено паролем.",
-                errorCorrupt: "Помилка: файл пошкоджено.",
-                successPass: "Успішно відскановано (Ч/Б)",
-                noFiles: "Немає завантажених файлів",
-                compareTitle: "Порівняння сторінок",
-                close: "Закрити",
-                originalPage: "Оригінал",
-                processedPage: "Ч/Б Скан-копія"
-            }
-        };
-
-        function renderApp() {
-            const strings = t[currentLang];
-            const root = document.getElementById('root');
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        best_page_bytes = None
+        
+        # Подбираем оптимальный DPI и качество для соблюдения лимита < 490 КБ без потери деталей
+        for dpi in [300, 250, 200, 150, 100]:
+            zoom = dpi / 72
+            mat = fitz.Matrix(zoom, zoom)
+            # Принудительная конвертация в оттенки серого (Grayscale)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
             
-            root.innerHTML = `
-                <header class="bg-blue-950 text-white shadow-md">
-                    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl overflow-hidden bg-white p-0.5 flex items-center justify-center">
-                                <img src="${LOGO_SRC}" alt="Logo" class="w-full h-full object-contain" onerror="this.style.display='none'">
-                            </div>
-                            <div>
-                                <h1 class="text-xl font-bold tracking-tight">${strings.title}</h1>
-                                <p class="text-xs text-blue-200">${strings.subtitle}</p>
-                            </div>
-                        </div>
-                    </div>
-                </header>
+            best_q_bytes = None
+            for q in [80, 70, 60, 50, 40, 30]:
+                img_data = pix.tobytes("jpeg", jpg_quality=q)
+                img_doc = fitz.open("pdf", img_data)
+                pdf_bytes = img_doc.convert_to_pdf()
+                
+                if len(pdf_bytes) <= max_bytes:
+                    best_q_bytes = pdf_bytes
+                    if q >= 60:
+                        break
+            
+            if best_q_bytes:
+                best_page_bytes = best_q_bytes
+                break
+                
+        if not best_page_bytes:
+            # Резервное сжатие при минимальных параметрах
+            zoom = 90 / 72
+            mat = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            img_data = pix.tobytes("jpeg", jpg_quality=25)
+            img_doc = fitz.open("pdf", img_data)
+            best_page_bytes = img_doc.convert_to_pdf()
 
-                <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 flex flex-col space-y-6">
-                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center cursor-pointer hover:border-blue-500 transition"
-                             onclick="document.getElementById('fileInput').click()"
-                             ondragover="event.preventDefault();"
-                             ondrop="handleFileDrop(event)">
-                            <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
-                            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-                                <i data-lucide="printer" class="w-8 h-8"></i>
-                            </div>
-                            <p class="text-sm font-semibold text-slate-700 mb-1">${strings.dropZoneText}</p>
-                            <p class="text-xs text-slate-400">${strings.dropSubtext}</p>
-                        </div>
+        single_page_reader = pypdf.PdfReader(io.BytesIO(best_page_bytes))
+        writer.add_page(single_page_reader.pages[0])
 
-                        <button onclick="startConversion()" 
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-                            ${filesQueue.length === 0 || isProcessing ? 'disabled' : ''}>
-                            <i data-lucide="${isProcessing ? 'loader-2' : 'scan'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
-                            ${isProcessing ? strings.processing : strings.convertBtn}
-                        </button>
-                    </div>
+    with open(output_pdf_path, "wb") as f:
+        writer.write(f)
+    print(f"Готово! Файл сохранен как: {output_pdf_path}")
 
-                    <div class="lg:col-span-2 flex flex-col space-y-6">
-                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow">
-                            <h2 class="text-base font-bold text-slate-800 mb-4">${strings.fileListTitle} (${filesQueue.length})</h2>
-                            ${filesQueue.length === 0 ? `
-                                <div class="py-16 text-center text-slate-400">
-                                    <p class="text-sm">${strings.noFiles}</p>
-                                </div>
-                            ` : `
-                                <div class="space-y-4">
-                                    ${filesQueue.map((item, index) => `
-                                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 flex justify-between items-center">
-                                            <div>
-                                                <span class="font-semibold text-sm">${item.file.name}</span>
-                                                <div class="text-xs text-slate-500 mt-1">
-                                                    Статус: <b class="${item.status === 'success' ? 'text-emerald-600' : 'text-amber-600'}">${item.statusText}</b>
-                                                    ${item.processedSize ? `| Сер. розмір сторінки: <b class="text-emerald-600">${(item.processedSize / 1024).toFixed(1)} КБ</b>` : ''}
-                                                </div>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                ${item.processedPdfBytes ? `
-                                                    <button onclick="openPreview(${index})" class="p-2 bg-white border rounded-lg shadow-sm" title="${strings.preview}">
-                                                        <i data-lucide="eye" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button onclick="downloadFile(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 rounded-lg shadow flex items-center gap-1">
-                                                        <i data-lucide="download" class="w-4 h-4"></i> ${strings.downloadZip}
-                                                    </button>
-                                                ` : ''}
-                                                <button onclick="removeFile(${index})" class="text-slate-400 hover:text-rose-600 p-2">
-                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                </main>
-            `;
-            lucide.createIcons();
-        }
-
-        function handleFileSelect(e) { addFiles(Array.from(e.target.files)); }
-        function handleFileDrop(e) { e.preventDefault(); addFiles(Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf')); }
-        function addFiles(newFiles) {
-            newFiles.forEach(file => filesQueue.push({ file, status: 'pending', statusText: 'В черзі', processedPdfBytes: null }));
-            renderApp();
-        }
-        function removeFile(i) { filesQueue.splice(i, 1); renderApp(); }
-
-        // Строгий Ч/Б фильтр (Grayscale)
-        function applyGrayscaleFilter(ctx, w, h) {
-            const imgData = ctx.getImageData(0, 0, w, h);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                if (gray >= 245) {
-                    gray = 255; // Идеально белый фон бумаги
-                } else {
-                    gray = Math.max(0, Math.round(gray * 0.85)); // Максимально четкий контраст для текста, таблиц и печатей
-                }
-                data[i] = gray; data[i + 1] = gray; data[i + 2] = gray;
-            }
-            ctx.putImageData(imgData, 0, 0);
-        }
-
-        async function processPage(page, ptW, ptH) {
-            const { jsPDF } = window.jspdf;
-            const dpiSteps = [300, 250, 200, 150, 100];
-            let bestBuffer = null;
-
-            for (const dpi of dpiSteps) {
-                const scale = dpi / 72;
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.floor(ptW * scale);
-                canvas.height = Math.floor(ptH * scale);
-                const ctx = canvas.getContext('2d');
-
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                try {
-                    await page.render({
-                        canvasContext: ctx,
-                        viewport: page.getViewport({ scale }),
-                        annotationMode: 2
-                    }).promise;
-
-                    applyGrayscaleFilter(ctx, canvas.width, canvas.height);
-
-                    // Подбор качества JPEG для строгого соблюдения лимита < 490 КБ
-                    for (let q = 0.85; q >= 0.2; q -= 0.15) {
-                        const doc = new jsPDF({ orientation: ptW > ptH ? 'l' : 'p', unit: 'pt', format: [ptW, ptH] });
-                        doc.addImage(canvas.toDataURL('image/jpeg', q), 'JPEG', 0, 0, ptW, ptH);
-                        const out = doc.output('arraybuffer');
-
-                        if (out.byteLength <= MAX_BYTES) {
-                            bestBuffer = out;
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("DPI step error:", e);
-                }
-
-                canvas.width = 0; canvas.height = 0;
-                if (bestBuffer) break;
-            }
-            return bestBuffer;
-        }
-
-        async function startConversion() {
-            isProcessing = true;
-            renderApp();
-
-            for (let i = 0; i < filesQueue.length; i++) {
-                const item = filesQueue[i];
-                item.status = 'processing';
-                renderApp();
-
-                try {
-                    const buf = await item.file.arrayBuffer();
-                    const
+# Пример использования:
+# convert_pdf_to_strict_bw("input.pdf", "output_bw.pdf")
