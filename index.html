@@ -171,7 +171,7 @@
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Чорно-біла (Pure B&W)</span>
+                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Розбиття сторінок</span>
@@ -328,14 +328,22 @@
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Строгая конвертация в чистый черно-белый формат (High Contrast Grayscale & Threshold)
-        function applyPureBlackAndWhiteToCtx(ctx, width, height) {
+        // Корректная конвертация в оттенки серого (Grayscale) с сохранением всех заполненных полей, печатей и тонкого текста
+        function applyGrayscaleToCtx(ctx, width, height) {
             const imgData = ctx.getImageData(0, 0, width, height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
+                // Стандартная формула яркости (Luminance)
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                // Порог для максимальной четкости текста банковских документов
-                gray = gray < 215 ? 0 : 255; 
+                
+                // Мягкое усиление контраста для читаемости бледного/синего заполненного текста без потери деталей:
+                // Только чистый белый фон (>= 248) остается 255, всё остальное немного затемняется
+                if (gray >= 248) {
+                    gray = 255;
+                } else {
+                    gray = Math.max(0, Math.round(gray * 0.85));
+                }
+                
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
@@ -365,8 +373,14 @@
 
                 try {
                     const viewport = page.getViewport({ scale: scale });
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    applyPureBlackAndWhiteToCtx(ctx, canvas.width, canvas.height);
+                    // Включаем рендеринг интерактивных форм и аннотаций (intent: 'display', annotationMode: 2)
+                    await page.render({ 
+                        canvasContext: ctx, 
+                        viewport: viewport,
+                        annotationMode: pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.ENABLE_FORMS : 2
+                    }).promise;
+                    
+                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                     let bestQualityBuffer = null;
                     let lowQ = 0.1, highQ = 0.95;
@@ -414,8 +428,13 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 const viewport = page.getViewport({ scale: scale });
-                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                applyPureBlackAndWhiteToCtx(ctx, canvas.width, canvas.height);
+                await page.render({ 
+                    canvasContext: ctx, 
+                    viewport: viewport,
+                    annotationMode: pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.ENABLE_FORMS : 2
+                }).promise;
+                
+                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: ptWidth > ptHeight ? 'l' : 'p',
@@ -467,7 +486,11 @@
                             const pCtx = prevCanvas.getContext('2d');
                             pCtx.fillStyle = '#FFFFFF';
                             pCtx.fillRect(0, 0, prevCanvas.width, prevCanvas.height);
-                            await page.render({ canvasContext: pCtx, viewport: page.getViewport({ scale: 150/72 }) }).promise;
+                            await page.render({ 
+                                canvasContext: pCtx, 
+                                viewport: page.getViewport({ scale: 150/72 }),
+                                annotationMode: pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode.ENABLE_FORMS : 2
+                            }).promise;
                             item.originalDataUrl = prevCanvas.toDataURL('image/jpeg', 0.85);
                             prevCanvas.width = 0; prevCanvas.height = 0;
                         }
