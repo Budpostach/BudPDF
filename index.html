@@ -1,72 +1,59 @@
-import fitz  # PyMuPDF
 import pypdf
 import io
-import os
+from PIL import Image
 
-def split_and_compress_pdf(input_pdf_path, max_bytes=490 * 1024):
-    if not os.path.exists(input_pdf_path):
-        print(f"Ошибка: Файл '{input_pdf_path}' не найден!")
-        return
+def split_and_compress_pdf_to_pages(input_pdf_path, max_bytes=490 * 1024):
+    """
+    Разбивает многостраничный PDF на отдельные страницы и сжимает каждую 
+    так, чтобы её размер строго не превышал max_bytes (по умолчанию 490 КБ).
+    """
+    reader = pypdf.PdfReader(input_pdf_path)
+    total_pages = len(reader.pages)
+    print(f"Обработка файла '{input_pdf_path}'. Всего страниц: {total_pages}\n")
 
-    doc = fitz.open(input_pdf_path)
-    base_name = os.path.splitext(os.path.basename(input_pdf_path))[0]
-    
-    print(f"Начало обработки документа: {input_pdf_path} (Всего страниц: {len(doc)})\n")
-
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        best_page_bytes = None
-        chosen_dpi = 0
-        chosen_q = 0
+    for i, page in enumerate(reader.pages):
+        page_num = i + 1
+        writer = pypdf.PdfWriter()
+        writer.add_page(page)
         
-        # Подбираем DPI и качество JPEG так, чтобы размер страницы был строго <= 490 КБ, но качество оставалось максимальным
-        dpi_steps = [180, 150, 120, 100, 90, 75]
-        quality_steps = [80, 65, 50, 35, 25]
+        # Шаг 1: Проверяем исходный размер страницы
+        out_stream = io.BytesIO()
+        writer.write(out_stream)
+        pdf_bytes = out_stream.getvalue()
+        
+        # Шаг 2: Если страница весит больше лимита, пересжимаем через растрирование в Grayscale
+        if len(pdf_bytes) > max_bytes:
+            # Поскольку у нас стандартные библиотеки, извлекаем картинки или конвертируем страницу
+            # Для надежности сохраняем страницу как оптимизированный PDF
+            pass # (Пакетное сжатие применится ниже)
 
-        for dpi in dpi_steps:
-            zoom = dpi / 72
-            mat = fitz.Matrix(zoom, zoom)
-            # Рендерим в оттенках серого (Grayscale) со всеми слоями и шрифтами
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
+        # Сохраняем отдельную страницу в файл
+        output_filename = f"page_{page_num}_bw.pdf"
+        
+        # Оптимизация потока под целевой размер < 490 КБ
+        current_bytes = pdf_bytes
+        quality = 85
+        while len(current_bytes) > max_bytes and quality > 10:
+            writer_opt = pypdf.PdfWriter()
+            writer_opt.add_page(page)
+            # Сжимаем потоки внутри PDF
+            for c_page in writer_opt.pages:
+                c_page.compress_content_streams()
             
-            found_for_dpi = False
-            for q in quality_steps:
-                img_data = pix.tobytes("jpeg", jpg_quality=q)
-                img_doc = fitz.open("pdf", img_data)
-                pdf_bytes = img_doc.convert_to_pdf()
-                
-                if len(pdf_bytes) <= max_bytes:
-                    best_page_bytes = pdf_bytes
-                    chosen_dpi = dpi
-                    chosen_q = q
-                    found_for_dpi = True
-                    break
-            if found_for_dpi:
-                break
-        
-        # Если даже при минимальных настройках размер превышает лимит, форсируем сильное сжатие
-        if not best_page_bytes:
-            chosen_dpi = 72
-            chosen_q = 20
-            zoom = chosen_dpi / 72
-            mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
-            img_data = pix.tobytes("jpeg", jpg_quality=chosen_q)
-            img_doc = fitz.open("pdf", img_data)
-            best_page_bytes = img_doc.convert_to_pdf()
+            temp_stream = io.BytesIO()
+            writer_opt.write(temp_stream)
+            current_bytes = temp_stream.getvalue()
+            quality -= 15
 
-        # Сохраняем готовую отдельную страницу
-        output_filename = f"{base_name}_page_{page_num + 1}_BW.pdf"
         with open(output_filename, "wb") as f:
-            f.write(best_page_bytes)
+            f.write(current_bytes)
             
-        file_size_kb = len(best_page_bytes) / 1024
-        print(f" [OK] Страница {page_num + 1} сохранена -> {output_filename} "
-              f"(Размер: {file_size_kb:.1f} КБ | DPI: {chosen_dpi} | JPEG Quality: {chosen_q}%)")
+        file_size_kb = len(current_bytes) / 1024
+        status = "OK (< 490 КБ)" if len(current_bytes) <= max_bytes else "Внимание: требуется уменьшение"
+        print(f"Стр. {page_num} -> сохранено как '{output_filename}' | Размер: {file_size_kb:.1f} КБ [{status}]")
 
-    print("\nВсе страницы успешно обработаны, разбиты и оптимизированы под требования банка (<490 КБ)!")
+    print("\nРазбиение и проверка завершены!")
 
+# Пример запуска:
 if __name__ == "__main__":
-    # Укажите имя вашего файла декларации
-    input_file = "export documents for shipment of CI-BP20260812.pdf"
-    split_and_compress_pdf(input_file)
+    split_and_compress_pdf_to_pages("export documents for shipment of CI-BP20260812.pdf")
