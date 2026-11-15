@@ -98,7 +98,8 @@ drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('
 $('clear').addEventListener('click', () => { if (busy) return; queue = []; render(); });
 
 function render() {
-  $('convert').disabled = busy \vert{}\vert{} !queue.some(q => q.status !== 'done');$('clear').disabled = busy;
+  $('convert').disabled = busy || !queue.some(q => q.status !== 'done');
+  $('clear').disabled = busy;
   const hasOutputs = queue.some(q => q.outputs.length > 0);
   $('all').classList.toggle('hidden', !hasOutputs);
 
@@ -213,4 +214,65 @@ async function convertOne(q) {
         const viewport = page.getViewport({ scale: currentDpi / 72 });
         const w = Math.ceil(viewport.width), h = Math.ceil(viewport.height);
         const canvas = makeCanvas(w, h);
-        const ctx = canvas.getContext
+        const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+        
+        await page.render({ canvasContext: ctx, viewport, background: '#ffffff' }).promise;
+        grayPixels(canvas);
+
+        let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', qualities[dIdx] || 0.7));
+        let jpegBuf = new Uint8Array(await blob.arrayBuffer());
+
+        const pdf = new window.jspdf.jsPDF({
+          orientation: size.width > size.height ? 'landscape' : 'portrait',
+          unit: 'pt',
+          format: [size.width, size.height],
+          compress: true
+        });
+        pdf.addImage(jpegBuf, 'JPEG', 0, 0, size.width, size.height, undefined, 'FAST');
+        const arrayBuf = pdf.output('arraybuffer');
+        canvas.width = canvas.height = 0;
+
+        if (arrayBuf.byteLength < 490 * 1024 || dIdx === dpisToTry.length - 1) {
+          pdfBytes = arrayBuf;
+          break;
+        }
+      }
+
+      q.outputs.push({
+        pageNum: p,
+        name: baseName(q.file.name) + `_page_${p}.pdf`,
+        bytes: pdfBytes
+      });
+      page.cleanup();
+    }
+    q.status = 'done';
+    q.progress = '';
+  } finally {
+    if (source) await source.destroy();
+  }
+}
+
+$('convert').addEventListener('click', async () => {
+  if (busy) return;
+  busy = true;
+  render();
+  for (const q of queue) {
+    if (q.status === 'done') continue;
+    q.status = 'working'; q.error = ''; q.progress = ''; q.outputs = [];
+    render();
+    try {
+      await convertOne(q);
+    } catch (err) {
+      console.error(err);
+      q.status = 'error';
+      q.error = err?.message || String(err);
+    }
+    render();
+  }
+  busy = false;
+  render();
+});
+translate();
+</script>
+</body>
+</html>
