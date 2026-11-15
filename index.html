@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Converter</title>
+    <title>BankPDF Converter</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -23,7 +23,7 @@
     <div id="root" class="flex-grow flex flex-col"></div>
 
     <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
-        PDF Converter &bull; Budpostach
+        BankPDF Converter &bull; Budpostach
     </footer>
 
     <!-- Main Application Logic Script -->
@@ -47,20 +47,15 @@
 
         const t = {
             ua: {
-                title: "PDF Converter",
-                subtitle: "Підготовка PDF (Чорно-біле, >2 стор. окремо, 600→150 DPI, <490 КБ)",
+                title: "BankPDF Converter",
+                subtitle: "Підготовка PDF-документів для банків України (Ч/Б, розділення сторінок, <490 КБ)",
                 dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація та оптимізація до 490 КБ",
+                dropSubtext: "Автоматичне розбиття, чорно-біла конвертація та оптимізація до 490 КБ",
                 settingsTitle: "Параметри обробки",
                 resLabel: "Цільова роздільна здатність",
                 colorLabel: "Колірна схема",
                 sizeLimitLabel: "Ліміт розміру сторінки",
                 qualityLabel: "Алгоритм DPI (600→500→400→300→150)",
-                pageSizeLabel: "Збереження розміру",
-                priorityLabel: "Пріоритет",
-                auto: "Авто (< 490 КБ)",
-                enabled: "Увімкнено",
-                maxReadability: "Чорно-білий режим + 600 DPI",
                 convertBtn: "Конвертувати PDF",
                 processing: "Обробка документів...",
                 clearList: "Очистити список",
@@ -77,30 +72,24 @@
                 errorPass: "Помилка: файл захищено паролем.",
                 errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті браузера.",
                 successPass: "Успішно конвертовано (Ч/Б)",
-                splitNotice: "Розбито на окремі сторінки (>2 стор.)",
+                splitNotice: "Розбито на окремі сторінки",
                 heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
                 noFiles: "Немає завантажених файлів",
                 compareTitle: "Порівняння сторінок",
                 close: "Закрити",
-                zoom: "Збільшити",
                 originalPage: "Оригінальна сторінка",
                 processedPage: "Оброблена (Чорно-біла, Smart DPI)"
             },
             en: {
-                title: "PDF Converter",
-                subtitle: "Preparing PDF (Grayscale, >2 pages split, 600→150 DPI, <490 KB)",
+                title: "BankPDF Converter",
+                subtitle: "Preparing PDF documents for Ukrainian banks (B&W, page splitting, <490 KB)",
                 dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic splitting, Grayscale conversion & optimization under 490 KB",
+                dropSubtext: "Automatic splitting, Black & White conversion & optimization under 490 KB",
                 settingsTitle: "Processing Parameters",
                 resLabel: "Target Resolution",
                 colorLabel: "Color Mode",
                 sizeLimitLabel: "Max Page Size",
                 qualityLabel: "DPI Steps (600→500→400→300→150)",
-                pageSizeLabel: "Preserve Page Size",
-                priorityLabel: "Priority",
-                auto: "Auto (< 490 KB)",
-                enabled: "Enabled",
-                maxReadability: "Grayscale Mode + 600 DPI",
                 convertBtn: "Convert PDF",
                 processing: "Processing documents...",
                 clearList: "Clear List",
@@ -117,14 +106,13 @@
                 errorPass: "Error: File is password protected.",
                 errorCorrupt: "Error: File is corrupted or browser memory limit reached.",
                 successPass: "Successfully Converted (B&W)",
-                splitNotice: "Split into single pages (>2 pages)",
+                splitNotice: "Split into single pages",
                 heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
                 noFiles: "No files uploaded",
                 compareTitle: "Page Comparison",
                 close: "Close",
-                zoom: "Zoom",
                 originalPage: "Original Page",
-                processedPage: "Processed (Grayscale, Smart DPI)"
+                processedPage: "Processed (Black & White, Smart DPI)"
             }
         };
 
@@ -148,7 +136,7 @@
                             </div>
                             <div>
                                 <h1 class="text-xl font-bold tracking-tight">${strings.title}</h1>
-                                <p class="text-xs text-blue-200">${strings.subtitle}</p>
+                                <p class="text-xs text-blue-200">Підготовка PDF-документів для банків України</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-3">
@@ -183,11 +171,11 @@
                             <ul class="space-y-3 text-xs">
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
+                                    <span class="font-semibold text-slate-900">Чорно-біла (Pure B&W)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
-                                    <span class="font-semibold text-emerald-600">Обов'язково</span>
+                                    <span class="text-slate-500">Розбиття сторінок</span>
+                                    <span class="font-semibold text-emerald-600">Обов'язково (кожна сторінка окремо)</span>
                                 </li>
                                 <li class="flex justify-between py-1.5 border-b border-slate-100">
                                     <span class="text-slate-500">${strings.resLabel}</span>
@@ -253,7 +241,7 @@
                                                         </b>
                                                     </span>
                                                     ${item.processedSize ? `<span>Avg Size: <b class="${item.processedSize <= MAX_BYTES ? 'text-emerald-600 font-bold' : 'text-rose-600'}">${(item.processedSize / 1024).toFixed(1)} KB</b></span>` : ''}
-                                                    ${item.isSplit ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${strings.splitNotice}</span>` : ''}
+                                                    <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${strings.splitNotice}</span>
                                                     ${item.hasHeavyPages ? `<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-medium">${strings.heavyPageNotice}</span>` : ''}
                                                 </div>
                                             </div>
@@ -265,7 +253,7 @@
                                                     </button>
                                                     <button onclick="downloadFile(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow transition flex items-center gap-1.5">
                                                         <i data-lucide="download" class="w-4 h-4"></i>
-                                                        ${item.isSplit ? 'Завантажити архів (ZIP)' : strings.download}
+                                                        Завантажити архів (ZIP)
                                                     </button>
                                                 ` : ''}
                                                 <button onclick="removeFile(${index})" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Видалити">
@@ -333,20 +321,21 @@
         }
         function addFilesToQueue(newFiles) {
             for (const file of newFiles) {
-                filesQueue.push({ file, pagesCount: null, status: 'pending', statusText: 'В черзі', processedPdfBytes: null, processedSize: null, isSplit: false, hasHeavyPages: false });
+                filesQueue.push({ file, pagesCount: null, status: 'pending', statusText: 'В черзі', processedPdfBytes: null, processedSize: null, hasHeavyPages: false });
             }
             renderApp();
         }
         function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
         function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Безопасный перевод в Ч/Б с усилением контраста
-        function applyGrayscaleToCtx(ctx, width, height) {
+        // Строгая конвертация в чистый черно-белый формат (High Contrast Grayscale & Threshold)
+        function applyPureBlackAndWhiteToCtx(ctx, width, height) {
             const imgData = ctx.getImageData(0, 0, width, height);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
                 let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                gray = gray < 210 ? Math.max(0, gray - 15) : 255; 
+                // Порог для максимальной четкости текста банковских документов
+                gray = gray < 215 ? 0 : 255; 
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
@@ -377,7 +366,7 @@
                 try {
                     const viewport = page.getViewport({ scale: scale });
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
+                    applyPureBlackAndWhiteToCtx(ctx, canvas.width, canvas.height);
 
                     let bestQualityBuffer = null;
                     let lowQ = 0.1, highQ = 0.95;
@@ -403,14 +392,14 @@
                     if (bestQualityBuffer) {
                         bestPageBuffer = bestQualityBuffer;
                         finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        canvas.width = 0; canvas.height = 0; // Освобождение памяти
+                        canvas.width = 0; canvas.height = 0;
                         break;
                     }
                 } catch (e) {
                     console.warn(`Memory pressure at ${dpi} DPI, falling back to lower resolution.`);
                 }
 
-                canvas.width = 0; canvas.height = 0; // Освобождение памяти
+                canvas.width = 0; canvas.height = 0;
             }
 
             // Запасной вариант при 150 DPI
@@ -426,7 +415,7 @@
                 
                 const viewport = page.getViewport({ scale: scale });
                 await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
+                applyPureBlackAndWhiteToCtx(ctx, canvas.width, canvas.height);
 
                 const singleDoc = new jsPDF({
                     orientation: ptWidth > ptHeight ? 'l' : 'p',
@@ -471,7 +460,6 @@
                         const ptWidth = page.getViewport({ scale: 1.0 }).width;
                         const ptHeight = page.getViewport({ scale: 1.0 }).height;
 
-                        // Снятие оригинала для превью первушки
                         if (p === 1) {
                             const prevCanvas = document.createElement('canvas');
                             prevCanvas.width = Math.floor(ptWidth * (150/72));
@@ -484,7 +472,6 @@
                             prevCanvas.width = 0; prevCanvas.height = 0;
                         }
 
-                        // Безопасная оптиматизация
                         const res = await processSinglePageOptimized(page, ptWidth, ptHeight);
 
                         if (res.dpi < 600) heavyDetected = true;
@@ -498,7 +485,6 @@
                         totalSizeSum += res.buffer.byteLength;
                     }
 
-                    item.isSplit = pdfDoc.numPages > 2;
                     item.hasHeavyPages = heavyDetected;
                     
                     const zipBlob = await zip.generateAsync({ type: 'arraybuffer' });
@@ -525,7 +511,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; 
-            a.download = `Pages_Split_Grayscale_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
+            a.download = `BW_Split_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
@@ -534,13 +520,13 @@
             const zip = new JSZip();
             for (const item of filesQueue) {
                 if (item.processedPdfBytes) {
-                    zip.file(`Split_Grayscale_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
+                    zip.file(`BW_Split_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
                 }
             }
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const a = document.createElement('a');
-            a.href = url; a.download = `All_Grayscale_Documents_Batch.zip`;
+            a.href = url; a.download = `All_BW_Documents_Batch.zip`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
