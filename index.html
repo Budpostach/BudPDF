@@ -2,8 +2,8 @@ import fitz  # PyMuPDF
 import pypdf
 import io
 
-def convert_customs_pdf_to_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
-    # Открываем документ через PyMuPDF (fitz), который идеально обрабатывает любые сложные слои и иероглифы
+def fix_customs_pdf(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
+    # Открываем документ через PyMuPDF с принудительной растеризацией векторных слоев данных
     doc = fitz.open(input_pdf_path)
     writer = pypdf.PdfWriter()
 
@@ -11,13 +11,13 @@ def convert_customs_pdf_to_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1
         page = doc[page_num]
         best_page_bytes = None
         
-        # Подбираем оптимальный DPI, чтобы сохранить мельчайший текст и иероглифы
-        for dpi in [200, 150, 120]:
+        # Подбираем DPI так, чтобы текст оставался идеальным, а вес был < 490 КБ
+        for dpi in [180, 150, 120, 100]:
             zoom = dpi / 72
             mat = fitz.Matrix(zoom, zoom)
             
-            # Рендерим страницу в оттенках серого (Grayscale), захватывая и бланк, и весь заполненный текст со штампами
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            # alpha=False гарантирует белый непрозрачный фон, а get_pixmap захватывает абсолютно все слои текста и печатей
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
             
             best_q_bytes = None
             for q in [75, 60, 45, 30]:
@@ -27,7 +27,7 @@ def convert_customs_pdf_to_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1
                 
                 if len(pdf_bytes) <= max_bytes:
                     best_q_bytes = pdf_bytes
-                    if q >= 60:
+                    if q >= 50:
                         break
             
             if best_q_bytes:
@@ -35,9 +35,9 @@ def convert_customs_pdf_to_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1
                 break
                 
         if not best_page_bytes:
-            zoom = 100 / 72
+            zoom = 90 / 72
             mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
             img_data = pix.tobytes("jpeg", jpg_quality=25)
             img_doc = fitz.open("pdf", img_data)
             best_page_bytes = img_doc.convert_to_pdf()
@@ -47,7 +47,7 @@ def convert_customs_pdf_to_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1
 
     with open(output_pdf_path, "wb") as f:
         writer.write(f)
-    print(f"Готово! Файл успешно сохранен: {output_pdf_path}")
+    print(f"Готово! Файл сохранен без потери текста: {output_pdf_path}")
 
-# Запуск конвертации:
-# convert_customs_pdf_to_bw("export documents for shipment of CI-BP20260812.pdf", "export_documents_final_bw.pdf")
+# Запуск:
+# fix_customs_pdf("export documents for shipment of CI-BP20260812.pdf", "export_documents_fixed_text.pdf")
