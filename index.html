@@ -3,555 +3,467 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Converter</title>
-    <!-- Tailwind CSS -->
+    <title>BankPDF Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- PDF.js for rendering PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-    <!-- jsPDF for building output PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- JSZip for batch archiving -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        .drop-active { border-color: #f35c09 !important; background-color: #fff7ed !important; }
+    </style>
 </head>
-<body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between selection:bg-blue-900 selection:text-white">
+<body class="h-full bg-slate-100 text-slate-800 font-sans antialiased flex flex-col justify-between">
 
     <div id="root" class="flex-grow flex flex-col"></div>
 
     <footer class="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
-        PDF Converter &bull; Budpostach
+        BankPDF Converter &bull; ПП «Будпостач»
     </footer>
 
-    <!-- Main Application Logic Script -->
     <script>
-        const LOGO_SRC = "BP_logo.jpg";
-
-        document.addEventListener('click', (event) => {
-            if (event.target && event.target.tagName === 'IMG' && event.target.getAttribute('src') === LOGO_SRC) {
-                window.location.href = 'https://budpdf.vercel.app';
-            }
-        });
-
-        const observer = new MutationObserver(() => {
-            const logoImg = document.querySelector(`img[src="${LOGO_SRC}"]`);
-            if (logoImg) {
-                logoImg.style.cursor = 'pointer';
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
-
-        const t = {
-            ua: {
-                title: "PDF Converter",
-                subtitle: "Підготовка PDF (Чорно-біле, >2 стор. окремо, 600→150 DPI, <490 КБ)",
-                dropZoneText: "Перетягніть PDF-файли сюди або натисніть для вибору",
-                dropSubtext: "Автоматичне розбиття, Ч/Б конвертація та оптимізація до 490 КБ",
-                settingsTitle: "Параметри обробки",
-                resLabel: "Цільова роздільна здатність",
-                colorLabel: "Колірна схема",
-                sizeLimitLabel: "Ліміт розміру сторінки",
-                qualityLabel: "Алгоритм DPI (600→500→400→300→150)",
-                pageSizeLabel: "Збереження розміру",
-                priorityLabel: "Пріоритет",
-                auto: "Авто (< 490 КБ)",
-                enabled: "Увімкнено",
-                maxReadability: "Чорно-білий режим + 600 DPI",
-                convertBtn: "Конвертувати PDF",
-                processing: "Обробка документів...",
-                clearList: "Очистити список",
-                addMore: "Додати ще PDF",
-                downloadAllZip: "Завантажити всі (ZIP)",
-                fileListTitle: "Черга документів",
-                original: "Оригінал",
-                result: "Результат",
-                status: "Статус",
-                size: "Розмір",
-                pages: "Сторінок",
-                download: "Завантажити",
-                preview: "Перегляд",
-                errorPass: "Помилка: файл захищено паролем.",
-                errorCorrupt: "Помилка: файл пошкоджено або недостатньо пам'яті браузера.",
-                successPass: "Успішно конвертовано (Ч/Б)",
-                splitNotice: "Розбито на окремі сторінки (>2 стор.)",
-                heavyPageNotice: "⚠️ Застосовано адаптивне зниження DPI",
-                noFiles: "Немає завантажених файлів",
-                compareTitle: "Порівняння сторінок",
-                close: "Закрити",
-                zoom: "Збільшити",
-                originalPage: "Оригінальна сторінка",
-                processedPage: "Оброблена (Чорно-біла, Smart DPI)"
-            },
-            en: {
-                title: "PDF Converter",
-                subtitle: "Preparing PDF (Grayscale, >2 pages split, 600→150 DPI, <490 KB)",
-                dropZoneText: "Drag & drop PDF files here or click to browse",
-                dropSubtext: "Automatic splitting, Grayscale conversion & optimization under 490 KB",
-                settingsTitle: "Processing Parameters",
-                resLabel: "Target Resolution",
-                colorLabel: "Color Mode",
-                sizeLimitLabel: "Max Page Size",
-                qualityLabel: "DPI Steps (600→500→400→300→150)",
-                pageSizeLabel: "Preserve Page Size",
-                priorityLabel: "Priority",
-                auto: "Auto (< 490 KB)",
-                enabled: "Enabled",
-                maxReadability: "Grayscale Mode + 600 DPI",
-                convertBtn: "Convert PDF",
-                processing: "Processing documents...",
-                clearList: "Clear List",
-                addMore: "Add More PDFs",
-                downloadAllZip: "Download All (ZIP)",
-                fileListTitle: "Document Queue",
-                original: "Original",
-                result: "Result",
-                status: "Status",
-                size: "Size",
-                pages: "Pages",
-                download: "Download",
-                preview: "Preview",
-                errorPass: "Error: File is password protected.",
-                errorCorrupt: "Error: File is corrupted or browser memory limit reached.",
-                successPass: "Successfully Converted (B&W)",
-                splitNotice: "Split into single pages (>2 pages)",
-                heavyPageNotice: "⚠️ Adaptive DPI downgrade applied",
-                noFiles: "No files uploaded",
-                compareTitle: "Page Comparison",
-                close: "Close",
-                zoom: "Zoom",
-                originalPage: "Original Page",
-                processedPage: "Processed (Grayscale, Smart DPI)"
-            }
-        };
-
-        let currentLang = 'ua';
-        let filesQueue = [];
-        let isProcessing = false;
-        let activeModal = null;
-        
+        const PDFJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
         const MAX_BYTES = 490 * 1024;
 
+        let filesQueue = [];
+        let isProcessing = false;
+        let previewModalData = null;
+
         function renderApp() {
-            const strings = t[currentLang];
             const root = document.getElementById('root');
             
             root.innerHTML = `
-                <header class="bg-blue-950 text-white shadow-md">
-                    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <header class="bg-slate-900 text-white shadow-md">
+                    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl overflow-hidden shadow-inner flex items-center justify-center bg-white p-0.5">
-                                <img src="${LOGO_SRC}" alt="Budpostach Logo" class="w-full h-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=box class=\\'w-6 h-6 text-blue-600\\'></i>'; lucide.createIcons();">
+                            <div class="w-10 h-10 rounded-xl bg-[#f35c09] text-white font-bold flex items-center justify-center shadow-inner text-lg">
+                                BP
                             </div>
                             <div>
-                                <h1 class="text-xl font-bold tracking-tight">${strings.title}</h1>
-                                <p class="text-xs text-blue-200">${strings.subtitle}</p>
+                                <h1 class="text-xl font-bold tracking-tight">BankPDF Converter</h1>
+                                <p class="text-xs text-slate-300">Підготовка PDF-документів для банків України</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="bg-blue-900/80 p-1 rounded-lg border border-blue-800 flex space-x-1 text-xs">
-                                <button onclick="setLang('ua')" class="px-3 py-1.5 rounded-md font-medium transition ${currentLang === 'ua' ? 'bg-blue-600 text-white shadow' : 'text-blue-200 hover:text-white'}">UA</button>
-                                <button onclick="setLang('en')" class="px-3 py-1.5 rounded-md font-medium transition ${currentLang === 'en' ? 'bg-blue-600 text-white shadow' : 'text-blue-200 hover:text-white'}">EN</button>
-                            </div>
+                        <div class="hidden sm:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                            <span>Локальна обробка в браузері</span>
                         </div>
                     </div>
                 </header>
 
                 <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-1 flex flex-col space-y-6">
-                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center relative group hover:border-blue-500 transition cursor-pointer"
+                        <div id="dropZone"
+                             class="bg-white rounded-2xl shadow-sm border-2 border-dashed border-slate-300 p-8 flex flex-col items-center text-center cursor-pointer hover:border-[#f35c09] transition"
                              onclick="document.getElementById('fileInput').click()"
-                             ondragover="event.preventDefault(); this.classList.add('border-blue-600', 'bg-blue-50/50')"
-                             ondragleave="this.classList.remove('border-blue-600', 'bg-blue-50/50')"
+                             ondragover="event.preventDefault(); this.classList.add('drop-active');"
+                             ondragleave="this.classList.remove('drop-active');"
                              ondrop="handleFileDrop(event)">
                             <input type="file" id="fileInput" multiple accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
-                            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition">
-                                <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                            <div class="w-16 h-16 bg-orange-50 text-[#f35c09] rounded-2xl flex items-center justify-center mb-4">
+                                <i data-lucide="file-up" class="w-8 h-8"></i>
                             </div>
-                            <p class="text-sm font-semibold text-slate-700 mb-1">${strings.dropZoneText}</p>
-                            <p class="text-xs text-slate-400">${strings.dropSubtext}</p>
+                            <p class="text-sm font-semibold text-slate-700 mb-1">Перетягніть PDF-файли сюди або натисніть для вибору</p>
+                            <p class="text-xs text-slate-400">Підтримка CJK-ієрогліфів, нестандартних шрифтів та печаток</p>
                         </div>
 
-                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <i data-lucide="sliders" class="w-4 h-4 text-blue-600"></i>
-                                ${strings.settingsTitle}
-                            </h2>
-                            <ul class="space-y-3 text-xs">
-                                <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Колірна схема</span>
-                                    <span class="font-semibold text-slate-900">Чорно-біла (Grayscale)</span>
-                                </li>
-                                <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Розбиття сторінок (&gt;2)</span>
-                                    <span class="font-semibold text-emerald-600">Обов'язково</span>
-                                </li>
-                                <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">${strings.resLabel}</span>
-                                    <span class="font-semibold text-slate-700">600 DPI (пріоритет)</span>
-                                </li>
-                                <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">Алгоритм DPI</span>
-                                    <span class="font-semibold text-slate-700">600→500→400→300→150</span>
-                                </li>
-                                <li class="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span class="text-slate-500">${strings.sizeLimitLabel}</span>
-                                    <span class="font-semibold text-emerald-600 font-bold">&le; 490 КБ Strict</span>
-                                </li>
-                            </ul>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Параметри сканера</h3>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-600">Колірний режим:</span>
+                                <span class="font-semibold text-slate-900">Строго Ч/Б (Grayscale)</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-600">Ліміт ваги сторінки:</span>
+                                <span class="font-semibold text-emerald-600">&le; 490 КБ</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-600">Шрифти та форми:</span>
+                                <span class="font-semibold text-slate-900">CMap + StandardFonts</span>
+                            </div>
+                            <div class="pt-2 border-t border-slate-100">
+                                <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                                    <input type="checkbox" id="preserveTextMode" checked class="rounded text-[#f35c09] focus:ring-[#f35c09]">
+                                    <span>Делікатне вибілювання фону (зберігає тонкий текст і штампи)</span>
+                                </label>
+                            </div>
                         </div>
 
                         <button onclick="startConversion()" 
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="w-full bg-[#f35c09] hover:bg-orange-700 text-white font-semibold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             ${filesQueue.length === 0 || isProcessing ? 'disabled' : ''}>
-                            <i data-lucide="${isProcessing ? 'loader-2' : 'cpu'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
-                            ${isProcessing ? strings.processing : strings.convertBtn}
+                            <i data-lucide="${isProcessing ? 'loader-2' : 'scan'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
+                            ${isProcessing ? 'Виконується сканування...' : 'Відсканувати у Ч/Б (<490 КБ)'}
                         </button>
                     </div>
 
                     <div class="lg:col-span-2 flex flex-col space-y-6">
                         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex-grow flex flex-col">
-                            <div class="flex justify-between items-center mb-6">
-                                <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                                    <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
-                                    ${strings.fileListTitle} (${filesQueue.length})
-                                </h2>
-                                ${filesQueue.length > 0 ? `
-                                    <div class="flex items-center gap-2">
-                                        <button onclick="clearQueue()" class="text-xs text-rose-600 hover:text-rose-700 font-medium px-3 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 transition">
-                                            ${strings.clearList}
-                                        </button>
-                                        <button onclick="document.getElementById('fileInput').click()" class="text-xs text-blue-600 hover:text-blue-700 font-medium px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition">
-                                            ${strings.addMore}
-                                        </button>
-                                    </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-base font-bold text-slate-800">Черга документів (${filesQueue.length})</h2>
+                                ${filesQueue.length > 0 && !isProcessing ? `
+                                    <button onclick="clearQueue()" class="text-xs text-slate-400 hover:text-rose-600 transition">Очистити все</button>
                                 ` : ''}
                             </div>
 
                             ${filesQueue.length === 0 ? `
-                                <div class="flex-grow flex flex-col items-center justify-center py-16 text-slate-400">
-                                    <i data-lucide="folder-open" class="w-16 h-16 mb-3 stroke-1 text-slate-300"></i>
-                                    <p class="text-sm font-medium text-slate-500">${strings.noFiles}</p>
+                                <div class="flex-grow flex flex-col items-center justify-center py-16 text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                                    <i data-lucide="files" class="w-10 h-10 mb-2 opacity-40"></i>
+                                    <p class="text-sm">Немає завантажених файлів</p>
                                 </div>
                             ` : `
-                                <div class="space-y-4 overflow-y-auto max-h-[600px] pr-2">
+                                <div class="space-y-4">
                                     ${filesQueue.map((item, index) => `
-                                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                            <div class="space-y-1">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-semibold text-slate-800 text-sm truncate max-w-xs">${item.file.name}</span>
-                                                    <span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">${(item.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 transition">
+                                            <div class="flex flex-wrap justify-between items-center gap-3">
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <i data-lucide="file-text" class="w-4 h-4 text-[#f35c09] shrink-0"></i>
+                                                        <span class="font-semibold text-sm truncate">${item.file.name}</span>
+                                                    </div>
+                                                    <div class="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                                        <span>Статус: <b class="${item.status === 'success' ? 'text-emerald-600' : item.status === 'error' ? 'text-rose-600' : 'text-amber-600'}">${item.statusText}</b></span>
+                                                        ${item.numPages ? `<span>Сторінок: <b>${item.numPages}</b></span>` : ''}
+                                                        ${item.maxPageSize ? `<span>Макс. сторінка: <b class="text-emerald-600">${(item.maxPageSize / 1024).toFixed(1)} КБ</b></span>` : ''}
+                                                    </div>
                                                 </div>
-                                                <div class="text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                                                    <span>${strings.pages}: <b>${item.pagesCount || '—'}</b></span>
-                                                    <span>${strings.status}: 
-                                                        <b class="${item.status === 'success' ? 'text-emerald-600' : item.status === 'error' ? 'text-rose-600' : 'text-amber-600'}">
-                                                            ${item.statusText || 'Очікування'}
-                                                        </b>
-                                                    </span>
-                                                    ${item.processedSize ? `<span>Avg Size: <b class="${item.processedSize <= MAX_BYTES ? 'text-emerald-600 font-bold' : 'text-rose-600'}">${(item.processedSize / 1024).toFixed(1)} KB</b></span>` : ''}
-                                                    ${item.isSplit ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${strings.splitNotice}</span>` : ''}
-                                                    ${item.hasHeavyPages ? `<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-medium">${strings.heavyPageNotice}</span>` : ''}
+                                                <div class="flex items-center gap-2 shrink-0">
+                                                    ${item.status === 'success' ? `
+                                                        <button onclick="openPreview(${index})" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1.5" title="Перевірити якість скану">
+                                                            <i data-lucide="eye" class="w-4 h-4"></i> Перегляд
+                                                        </button>
+                                                        <button onclick="downloadCombinedPdf(${index})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити єдиним PDF">
+                                                            <i data-lucide="file-down" class="w-4 h-4"></i> PDF
+                                                        </button>
+                                                        <button onclick="downloadZip(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити посторінково в ZIP">
+                                                            <i data-lucide="archive" class="w-4 h-4"></i> ZIP
+                                                        </button>
+                                                    ` : ''}
+                                                    <button onclick="removeFile(${index})" ${isProcessing ? 'disabled' : ''} class="text-slate-400 hover:text-rose-600 p-2 disabled:opacity-30">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
                                                 </div>
                                             </div>
-                                            
-                                            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-                                                ${item.processedPdfBytes ? `
-                                                    <button onclick="openPreview(${index})" class="p-2 text-slate-600 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm transition" title="${strings.preview}">
-                                                        <i data-lucide="eye" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button onclick="downloadFile(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow transition flex items-center gap-1.5">
-                                                        <i data-lucide="download" class="w-4 h-4"></i>
-                                                        ${item.isSplit ? 'Завантажити архів (ZIP)' : strings.download}
-                                                    </button>
-                                                ` : ''}
-                                                <button onclick="removeFile(${index})" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Видалити">
-                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                </button>
-                                            </div>
+                                            ${item.pagesInfo && item.pagesInfo.length > 0 ? `
+                                                <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex flex-wrap gap-1.5">
+                                                    ${item.pagesInfo.map(p => `
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-white border border-slate-200 text-slate-600">
+                                                            Стор. ${p.pageNum}: <b class="ml-1 text-slate-800">${(p.size / 1024).toFixed(0)} КБ</b> (${p.dpi} DPI)
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
-
-                                ${filesQueue.some(f => f.processedPdfBytes) ? `
-                                    <div class="mt-6 pt-4 border-t border-slate-200 flex justify-end">
-                                        <button onclick="downloadAllZip()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium py-2.5 px-4 rounded-xl shadow transition flex items-center gap-2">
-                                            <i data-lucide="file-archive" class="w-4 h-4"></i>
-                                            ${strings.downloadAllZip}
-                                        </button>
-                                    </div>
-                                ` : ''}
                             `}
                         </div>
                     </div>
                 </main>
 
-                ${activeModal ? `
-                    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-                            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                <h3 class="font-bold text-slate-800 text-sm">${strings.compareTitle}: ${activeModal.fileName}</h3>
-                                <button onclick="closePreview()" class="text-slate-400 hover:text-slate-600 p-1">
-                                    <i data-lucide="x" class="w-5 h-5"></i>
-                                </button>
-                            </div>
-                            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
-                                <div class="space-y-2 text-center">
-                                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${strings.originalPage}</span>
-                                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 p-2 flex items-center justify-center max-h-[500px]">
-                                        <img src="${activeModal.originalDataUrl}" class="max-h-[450px] object-contain shadow bg-white" alt="Original">
-                                    </div>
-                                </div>
-                                <div class="space-y-2 text-center">
-                                    <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">${strings.processedPage}</span>
-                                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 p-2 flex items-center justify-center max-h-[500px]">
-                                        <img src="${activeModal.processedDataUrl}" class="max-h-[450px] object-contain shadow bg-white" alt="Processed">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-                                <button onclick="closePreview()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2 px-4 rounded-xl transition">
-                                    ${strings.close}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
+                ${previewModalData ? renderPreviewModal() : ''}
             `;
             lucide.createIcons();
         }
 
-        function setLang(lang) { currentLang = lang; renderApp(); }
-        function handleFileSelect(event) { addFilesToQueue(Array.from(event.target.files)); }
-        function handleFileDrop(event) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('border-blue-600', 'bg-blue-50/50');
-            addFilesToQueue(Array.from(event.dataTransfer.files).filter(f => f.type === 'application/pdf'));
+        function renderPreviewModal() {
+            const { fileName, pageIdx, totalPages, previewImgUrl, pageSize, dpi } = previewModalData;
+            return `
+                <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this) closePreview()">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                            <div>
+                                <h3 class="font-bold text-sm text-slate-800">${fileName}</h3>
+                                <p class="text-xs text-slate-500">Сторінка ${pageIdx + 1} з ${totalPages} &bull; Вага PDF-сторінки: <b>${(pageSize / 1024).toFixed(1)} КБ</b> &bull; Роздільна здатність: <b>${dpi} DPI</b></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changePreviewPage(-1)" ${pageIdx === 0 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&larr; Попередня</button>
+                                <button onclick="changePreviewPage(1)" ${pageIdx >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">Наступна &rarr;</button>
+                                <button onclick="closePreview()" class="ml-2 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 overflow-auto bg-slate-200 flex-grow flex justify-center items-start">
+                            <img src="${previewImgUrl}" alt="Scan preview" class="max-w-full shadow-lg border border-slate-300 bg-white">
+                        </div>
+                    </div>
+                </div>
+            `;
         }
-        function addFilesToQueue(newFiles) {
-            for (const file of newFiles) {
-                filesQueue.push({ file, pagesCount: null, status: 'pending', statusText: 'В черзі', processedPdfBytes: null, processedSize: null, isSplit: false, hasHeavyPages: false });
-            }
+
+        function handleFileSelect(e) {
+            addFiles(Array.from(e.target.files));
+            e.target.value = '';
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drop-active');
+            addFiles(Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
+        }
+
+        function addFiles(newFiles) {
+            newFiles.forEach(file => {
+                filesQueue.push({
+                    file,
+                    status: 'pending',
+                    statusText: 'Очікує сканування',
+                    zipBytes: null,
+                    combinedPdfBytes: null,
+                    pagesInfo: []
+                });
+            });
             renderApp();
         }
-        function removeFile(index) { filesQueue.splice(index, 1); renderApp(); }
-        function clearQueue() { filesQueue = []; renderApp(); }
 
-        // Безопасный перевод в Ч/Б с усилением контраста
-        function applyGrayscaleToCtx(ctx, width, height) {
-            const imgData = ctx.getImageData(0, 0, width, height);
+        function removeFile(i) {
+            filesQueue.splice(i, 1);
+            renderApp();
+        }
+
+        function clearQueue() {
+            filesQueue = [];
+            renderApp();
+        }
+
+        function openPreview(fileIndex) {
+            const item = filesQueue[fileIndex];
+            if (!item || !item.pagesInfo.length) return;
+            const p = item.pagesInfo[0];
+            previewModalData = {
+                fileIndex,
+                fileName: item.file.name,
+                pageIdx: 0,
+                totalPages: item.pagesInfo.length,
+                previewImgUrl: p.previewDataUrl,
+                pageSize: p.size,
+                dpi: p.dpi
+            };
+            renderApp();
+        }
+
+        function changePreviewPage(delta) {
+            if (!previewModalData) return;
+            const item = filesQueue[previewModalData.fileIndex];
+            const nextIdx = previewModalData.pageIdx + delta;
+            if (nextIdx >= 0 && nextIdx < item.pagesInfo.length) {
+                const p = item.pagesInfo[nextIdx];
+                previewModalData.pageIdx = nextIdx;
+                previewModalData.previewImgUrl = p.previewDataUrl;
+                previewModalData.pageSize = p.size;
+                previewModalData.dpi = p.dpi;
+                renderApp();
+            }
+        }
+
+        function closePreview() {
+            previewModalData = null;
+            renderApp();
+        }
+
+        function applyScannerFilter(ctx, w, h, gentleMode) {
+            const imgData = ctx.getImageData(0, 0, w, h);
             const data = imgData.data;
+
             for (let i = 0; i < data.length; i += 4) {
-                let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                gray = gray < 210 ? Math.max(0, gray - 15) : 255; 
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                const minChannel = Math.min(r, g, b);
+                const luma = r * 0.299 + g * 0.587 + b * 0.114;
+                let gray = Math.min(luma, (luma * 0.65 + minChannel * 0.35));
+
+                if (gentleMode) {
+                    if (gray >= 246) {
+                        gray = 255;
+                    } else {
+                        gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.35))));
+                    }
+                } else {
+                    if (gray >= 238) {
+                        gray = 255;
+                    } else {
+                        gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.6))));
+                    }
+                }
+
                 data[i] = gray;
                 data[i + 1] = gray;
                 data[i + 2] = gray;
+                data[i + 3] = 255;
             }
             ctx.putImageData(imgData, 0, 0);
         }
 
-        // Постраничный рендеринг и пошаговая оптимизация DPI без переполнения памяти
-        async function processSinglePageOptimized(page, ptWidth, ptHeight) {
+        async function renderPageToBW(page, ptW, ptH, gentleMode) {
             const { jsPDF } = window.jspdf;
-            const dpiSteps = [600, 500, 400, 300, 150];
-            let bestPageBuffer = null;
-            let appliedDpi = 600;
-            let finalCanvasDataUrl = null;
+            const dpiSteps = [250, 200, 170, 150, 120, 100];
 
             for (const dpi of dpiSteps) {
-                appliedDpi = dpi;
                 const scale = dpi / 72;
-                
                 const canvas = document.createElement('canvas');
-                canvas.width = Math.max(1, Math.floor(ptWidth * scale));
-                canvas.height = Math.max(1, Math.floor(ptHeight * scale));
-                const ctx = canvas.getContext('2d');
+                canvas.width = Math.max(1, Math.floor(ptW * scale));
+                canvas.height = Math.max(1, Math.floor(ptH * scale));
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                try {
-                    const viewport = page.getViewport({ scale: scale });
-                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                    applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: page.getViewport({ scale }),
+                    annotationMode: 2
+                }).promise;
 
-                    let bestQualityBuffer = null;
-                    let lowQ = 0.1, highQ = 0.95;
+                applyScannerFilter(ctx, canvas.width, canvas.height, gentleMode);
 
-                    for (let iter = 0; iter < 6; iter++) {
-                        const midQ = (lowQ + highQ) / 2;
-                        const singleDoc = new jsPDF({
-                            orientation: ptWidth > ptHeight ? 'l' : 'p',
-                            unit: 'pt',
-                            format: [ptWidth, ptHeight]
-                        });
-                        singleDoc.addImage(canvas.toDataURL('image/jpeg', midQ), 'JPEG', 0, 0, ptWidth, ptHeight);
-                        const out = singleDoc.output('arraybuffer');
+                for (let q = 0.85; q >= 0.35; q -= 0.1) {
+                    const quality = Number(q.toFixed(2));
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const singleDoc = new jsPDF({
+                        orientation: ptW > ptH ? 'l' : 'p',
+                        unit: 'pt',
+                        format: [ptW, ptH],
+                        compress: true
+                    });
+                    singleDoc.addImage(dataUrl, 'JPEG', 0, 0, ptW, ptH, undefined, 'FAST');
+                    const pdfArrayBuffer = singleDoc.output('arraybuffer');
 
-                        if (out.byteLength <= MAX_BYTES) {
-                            bestQualityBuffer = out;
-                            lowQ = midQ;
-                        } else {
-                            highQ = midQ;
-                        }
+                    if (pdfArrayBuffer.byteLength <= MAX_BYTES) {
+                        canvas.width = 0;
+                        canvas.height = 0;
+                        return {
+                            pdfBytes: pdfArrayBuffer,
+                            dataUrl,
+                            ptW,
+                            ptH,
+                            dpi,
+                            quality,
+                            size: pdfArrayBuffer.byteLength
+                        };
                     }
-
-                    if (bestQualityBuffer) {
-                        bestPageBuffer = bestQualityBuffer;
-                        finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        canvas.width = 0; canvas.height = 0; // Освобождение памяти
-                        break;
-                    }
-                } catch (e) {
-                    console.warn(`Memory pressure at ${dpi} DPI, falling back to lower resolution.`);
                 }
 
-                canvas.width = 0; canvas.height = 0; // Освобождение памяти
+                canvas.width = 0;
+                canvas.height = 0;
             }
 
-            // Запасной вариант при 150 DPI
-            if (!bestPageBuffer) {
-                appliedDpi = 150;
-                const scale = 150 / 72;
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.max(1, Math.floor(ptWidth * scale));
-                canvas.height = Math.max(1, Math.floor(ptHeight * scale));
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                const viewport = page.getViewport({ scale: scale });
-                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                applyGrayscaleToCtx(ctx, canvas.width, canvas.height);
-
-                const singleDoc = new jsPDF({
-                    orientation: ptWidth > ptHeight ? 'l' : 'p',
-                    unit: 'pt',
-                    format: [ptWidth, ptHeight]
-                });
-                singleDoc.addImage(canvas.toDataURL('image/jpeg', 0.1), 'JPEG', 0, 0, ptWidth, ptHeight);
-                bestPageBuffer = singleDoc.output('arraybuffer');
-                finalCanvasDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                canvas.width = 0; canvas.height = 0;
-            }
-
-            return { buffer: bestPageBuffer, dpi: appliedDpi, dataUrl: finalCanvasDataUrl };
+            throw new Error("Не вдалося стиснути сторінку до 490 КБ");
         }
 
         async function startConversion() {
+            if (isProcessing) return;
             isProcessing = true;
+            const gentleMode = document.getElementById('preserveTextMode')?.checked ?? true;
             renderApp();
-            const strings = t[currentLang];
+
+            const { jsPDF } = window.jspdf;
 
             for (let i = 0; i < filesQueue.length; i++) {
                 const item = filesQueue[i];
+                if (item.status === 'success') continue;
+
                 item.status = 'processing';
-                item.statusText = strings.processing;
+                item.statusText = 'Завантаження PDF та CMap...';
+                item.pagesInfo = [];
                 renderApp();
 
                 try {
                     const arrayBuffer = await item.file.arrayBuffer();
-                    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                    
+                    const loadingTask = pdfjsLib.getDocument({
+                        data: arrayBuffer,
+                        cMapUrl: `${PDFJS_CDN_BASE}/cmaps/`,
+                        cMapPacked: true,
+                        standardFontDataUrl: `${PDFJS_CDN_BASE}/standard_fonts/`,
+                        useSystemFonts: true
+                    });
+
                     const pdfDoc = await loadingTask.promise;
-                    item.pagesCount = pdfDoc.numPages;
+                    item.numPages = pdfDoc.numPages;
 
                     const zip = new JSZip();
-                    let totalSizeSum = 0;
-                    let heavyDetected = false;
+                    let combinedDoc = null;
+                    let maxPageSize = 0;
+                    const baseName = item.file.name.replace(/\.pdf$/i, '');
 
                     for (let p = 1; p <= pdfDoc.numPages; p++) {
-                        item.statusText = `${strings.processing} (${p}/${pdfDoc.numPages})`;
+                        item.statusText = `Сканування сторінки ${p} із ${pdfDoc.numPages}...`;
                         renderApp();
 
                         const page = await pdfDoc.getPage(p);
-                        const ptWidth = page.getViewport({ scale: 1.0 }).width;
-                        const ptHeight = page.getViewport({ scale: 1.0 }).height;
+                        const viewport = page.getViewport({ scale: 1.0 });
+                        const res = await renderPageToBW(page, viewport.width, viewport.height, gentleMode);
 
-                        // Снятие оригинала для превью первушки
-                        if (p === 1) {
-                            const prevCanvas = document.createElement('canvas');
-                            prevCanvas.width = Math.floor(ptWidth * (150/72));
-                            prevCanvas.height = Math.floor(ptHeight * (150/72));
-                            const pCtx = prevCanvas.getContext('2d');
-                            pCtx.fillStyle = '#FFFFFF';
-                            pCtx.fillRect(0, 0, prevCanvas.width, prevCanvas.height);
-                            await page.render({ canvasContext: pCtx, viewport: page.getViewport({ scale: 150/72 }) }).promise;
-                            item.originalDataUrl = prevCanvas.toDataURL('image/jpeg', 0.85);
-                            prevCanvas.width = 0; prevCanvas.height = 0;
-                        }
-
-                        // Безопасная оптиматизация
-                        const res = await processSinglePageOptimized(page, ptWidth, ptHeight);
-
-                        if (res.dpi < 600) heavyDetected = true;
+                        zip.file(`${baseName}_page_${p}_BW.pdf`, res.pdfBytes);
 
                         if (p === 1) {
-                            item.processedDataUrl = res.dataUrl;
+                            combinedDoc = new jsPDF({
+                                orientation: res.ptW > res.ptH ? 'l' : 'p',
+                                unit: 'pt',
+                                format: [res.ptW, res.ptH],
+                                compress: true
+                            });
+                        } else {
+                            combinedDoc.addPage([res.ptW, res.ptH], res.ptW > res.ptH ? 'l' : 'p');
                         }
+                        combinedDoc.addImage(res.dataUrl, 'JPEG', 0, 0, res.ptW, res.ptH, undefined, 'FAST');
 
-                        const pageFileName = `Page_${p}_of_${pdfDoc.numPages}_${item.file.name.replace(/\.[^/.]+$/, "")}.pdf`;
-                        zip.file(pageFileName, res.buffer);
-                        totalSizeSum += res.buffer.byteLength;
+                        if (res.size > maxPageSize) maxPageSize = res.size;
+
+                        item.pagesInfo.push({
+                            pageNum: p,
+                            size: res.size,
+                            dpi: res.dpi,
+                            previewDataUrl: res.dataUrl
+                        });
                     }
 
-                    item.isSplit = pdfDoc.numPages > 2;
-                    item.hasHeavyPages = heavyDetected;
-                    
-                    const zipBlob = await zip.generateAsync({ type: 'arraybuffer' });
-                    item.processedPdfBytes = zipBlob;
-                    item.processedSize = totalSizeSum / pdfDoc.numPages;
+                    item.zipBytes = await zip.generateAsync({ type: 'arraybuffer' });
+                    item.combinedPdfBytes = combinedDoc.output('arraybuffer');
+                    item.maxPageSize = maxPageSize;
                     item.status = 'success';
-                    item.statusText = strings.successPass;
-
+                    item.statusText = 'Готово (100% Ч/Б, <490 КБ)';
                 } catch (err) {
-                    console.error("PDF processing error:", err);
+                    console.error(err);
                     item.status = 'error';
-                    item.statusText = strings.errorCorrupt;
+                    item.statusText = `Помилка: ${err.message || 'не вдалося прочитати файл'}`;
                 }
                 renderApp();
             }
+
             isProcessing = false;
             renderApp();
         }
 
-        function downloadFile(index) {
+        function downloadZip(index) {
             const item = filesQueue[index];
-            if (!item || !item.processedPdfBytes) return;
-            const blob = new Blob([item.processedPdfBytes], { type: 'application/zip' });
+            if (!item?.zipBytes) return;
+            const blob = new Blob([item.zipBytes], { type: 'application/zip' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; 
-            a.download = `Pages_Split_Grayscale_Under490KB_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            a.href = url;
+            a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_pages.zip`;
+            a.click();
             URL.revokeObjectURL(url);
         }
 
-        async function downloadAllZip() {
-            const zip = new JSZip();
-            for (const item of filesQueue) {
-                if (item.processedPdfBytes) {
-                    zip.file(`Split_Grayscale_${item.file.name.replace(/\.[^/.]+$/, "")}.zip`, item.processedPdfBytes);
-                }
-            }
-            const content = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(content);
-            const a = document.createElement('a');
-            a.href = url; a.download = `All_Grayscale_Documents_Batch.zip`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        openPreview = function(index) {
+        function downloadCombinedPdf(index) {
             const item = filesQueue[index];
-            if (!item) return;
-            activeModal = { fileName: item.file.name, originalDataUrl: item.originalDataUrl, processedDataUrl: item.processedDataUrl };
-            renderApp();
+            if (!item?.combinedPdfBytes) return;
+            const blob = new Blob([item.combinedPdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_full.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
-        function closePreview() { activeModal = null; renderApp(); }
 
         renderApp();
     </script>
