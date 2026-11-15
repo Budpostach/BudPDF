@@ -26,7 +26,7 @@
 
     <script>
         const PDFJS_CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
-        const MAX_BYTES = 490 * 1024;
+        const MAX_BYTES = 490 * 1024; // Строгий лимит 490 КБ на страницу
 
         let filesQueue = [];
         let isProcessing = false;
@@ -49,7 +49,7 @@
                         </div>
                         <div class="hidden sm:flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
                             <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                            <span>Локальна обробка в браузері</span>
+                            <span>100% збереження тексту і печаток</span>
                         </div>
                     </div>
                 </header>
@@ -67,27 +67,23 @@
                                 <i data-lucide="file-up" class="w-8 h-8"></i>
                             </div>
                             <p class="text-sm font-semibold text-slate-700 mb-1">Перетягніть PDF-файли сюди або натисніть для вибору</p>
-                            <p class="text-xs text-slate-400">Підтримка CJK-ієрогліфів, нестандартних шрифтів та печаток</p>
+                            <p class="text-xs text-slate-400">Зберігає всі заповнені поля, іероглифи та штампи</p>
                         </div>
 
                         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Параметри сканера</h3>
                             <div class="flex justify-between text-xs">
-                                <span class="text-slate-600">Колірний режим:</span>
-                                <span class="font-semibold text-slate-900">Строго Ч/Б (Grayscale)</span>
+                                <span class="text-slate-600">Режим:</span>
+                                <span class="font-semibold text-slate-900">Растровий скан (Grayscale)</span>
                             </div>
                             <div class="flex justify-between text-xs">
                                 <span class="text-slate-600">Ліміт ваги сторінки:</span>
                                 <span class="font-semibold text-emerald-600">&le; 490 КБ</span>
                             </div>
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-600">Шрифти та форми:</span>
-                                <span class="font-semibold text-slate-900">CMap + StandardFonts</span>
-                            </div>
                             <div class="pt-2 border-t border-slate-100">
                                 <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
                                     <input type="checkbox" id="preserveTextMode" checked class="rounded text-[#f35c09] focus:ring-[#f35c09]">
-                                    <span>Делікатне вибілювання фону (зберігає тонкий текст і штампи)</span>
+                                    <span>Делікатне вибілювання фону (чіткий текст і печатки)</span>
                                 </label>
                             </div>
                         </div>
@@ -96,7 +92,7 @@
                             class="w-full bg-[#f35c09] hover:bg-orange-700 text-white font-semibold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             ${filesQueue.length === 0 || isProcessing ? 'disabled' : ''}>
                             <i data-lucide="${isProcessing ? 'loader-2' : 'scan'}" class="w-5 h-5 ${isProcessing ? 'animate-spin' : ''}"></i>
-                            ${isProcessing ? 'Виконується сканування...' : 'Відсканувати у Ч/Б (<490 КБ)'}
+                            ${isProcessing ? 'Сканування сторінок...' : 'Відсканувати у Ч/Б (<490 КБ)'}
                         </button>
                     </div>
 
@@ -132,13 +128,13 @@
                                                 </div>
                                                 <div class="flex items-center gap-2 shrink-0">
                                                     ${item.status === 'success' ? `
-                                                        <button onclick="openPreview(${index})" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1.5" title="Перевірити якість скану">
+                                                        <button onclick="openPreview(${index})" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1.5" title="Перевірити якість">
                                                             <i data-lucide="eye" class="w-4 h-4"></i> Перегляд
                                                         </button>
-                                                        <button onclick="downloadCombinedPdf(${index})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити єдиним PDF">
+                                                        <button onclick="downloadCombinedPdf(${index})" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити PDF">
                                                             <i data-lucide="file-down" class="w-4 h-4"></i> PDF
                                                         </button>
-                                                        <button onclick="downloadZip(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити посторінково в ZIP">
+                                                        <button onclick="downloadZip(${index})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 px-3 rounded-lg shadow flex items-center gap-1.5" title="Завантажити ZIP">
                                                             <i data-lucide="archive" class="w-4 h-4"></i> ZIP
                                                         </button>
                                                     ` : ''}
@@ -177,75 +173,44 @@
                         <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                             <div>
                                 <h3 class="font-bold text-sm text-slate-800">${fileName}</h3>
-                                <p class="text-xs text-slate-500">Сторінка ${pageIdx + 1} з ${totalPages} &bull; Вага PDF-сторінки: <b>${(pageSize / 1024).toFixed(1)} КБ</b> &bull; Роздільна здатність: <b>${dpi} DPI</b></p>
+                                <p class="text-xs text-slate-500">Сторінка ${pageIdx + 1} з ${totalPages} &bull; Вага: <b>${(pageSize / 1024).toFixed(1)} КБ</b> &bull; <b>${dpi} DPI</b></p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button onclick="changePreviewPage(-1)" ${pageIdx === 0 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&larr; Попередня</button>
-                                <button onclick="changePreviewPage(1)" ${pageIdx >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">Наступна &rarr;</button>
+                                <button onclick="changePreviewPage(-1)" ${pageIdx === 0 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&larr;</button>
+                                <button onclick="changePreviewPage(1)" ${pageIdx >= totalPages - 1 ? 'disabled' : ''} class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-slate-100">&rarr;</button>
                                 <button onclick="closePreview()" class="ml-2 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="p-6 overflow-auto bg-slate-200 flex-grow flex justify-center items-start">
-                            <img src="${previewImgUrl}" alt="Scan preview" class="max-w-full shadow-lg border border-slate-300 bg-white">
+                            <img src="${previewImgUrl}" alt="Preview" class="max-w-full shadow-lg border border-slate-300 bg-white">
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        function handleFileSelect(e) {
-            addFiles(Array.from(e.target.files));
-            e.target.value = '';
-        }
-
+        function handleFileSelect(e) { addFiles(Array.from(e.target.files)); e.target.value = ''; }
         function handleFileDrop(e) {
             e.preventDefault();
             document.getElementById('dropZone').classList.remove('drop-active');
             addFiles(Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
         }
-
         function addFiles(newFiles) {
-            newFiles.forEach(file => {
-                filesQueue.push({
-                    file,
-                    status: 'pending',
-                    statusText: 'Очікує сканування',
-                    zipBytes: null,
-                    combinedPdfBytes: null,
-                    pagesInfo: []
-                });
-            });
+            newFiles.forEach(file => filesQueue.push({ file, status: 'pending', statusText: 'В черзі', zipBytes: null, combinedPdfBytes: null, pagesInfo: [] }));
             renderApp();
         }
-
-        function removeFile(i) {
-            filesQueue.splice(i, 1);
-            renderApp();
-        }
-
-        function clearQueue() {
-            filesQueue = [];
-            renderApp();
-        }
+        function removeFile(i) { filesQueue.splice(i, 1); renderApp(); }
+        function clearQueue() { filesQueue = []; renderApp(); }
 
         function openPreview(fileIndex) {
             const item = filesQueue[fileIndex];
             if (!item || !item.pagesInfo.length) return;
             const p = item.pagesInfo[0];
-            previewModalData = {
-                fileIndex,
-                fileName: item.file.name,
-                pageIdx: 0,
-                totalPages: item.pagesInfo.length,
-                previewImgUrl: p.previewDataUrl,
-                pageSize: p.size,
-                dpi: p.dpi
-            };
+            previewModalData = { fileIndex, fileName: item.file.name, pageIdx: 0, totalPages: item.pagesInfo.length, previewImgUrl: p.previewDataUrl, pageSize: p.size, dpi: p.dpi };
             renderApp();
         }
-
         function changePreviewPage(delta) {
             if (!previewModalData) return;
             const item = filesQueue[previewModalData.fileIndex];
@@ -259,50 +224,35 @@
                 renderApp();
             }
         }
+        function closePreview() { previewModalData = null; renderApp(); }
 
-        function closePreview() {
-            previewModalData = null;
-            renderApp();
-        }
-
+        // Полноценный фильтр сканера: переводит в Ч/Б, сохраняя все детали текста и печатей
         function applyScannerFilter(ctx, w, h, gentleMode) {
             const imgData = ctx.getImageData(0, 0, w, h);
             const data = imgData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-
+                const r = data[i], g = data[i + 1], b = data[i + 2];
                 const minChannel = Math.min(r, g, b);
                 const luma = r * 0.299 + g * 0.587 + b * 0.114;
                 let gray = Math.min(luma, (luma * 0.65 + minChannel * 0.35));
 
                 if (gentleMode) {
-                    if (gray >= 246) {
-                        gray = 255;
-                    } else {
-                        gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.35))));
-                    }
+                    if (gray >= 246) gray = 255;
+                    else gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.35))));
                 } else {
-                    if (gray >= 238) {
-                        gray = 255;
-                    } else {
-                        gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.6))));
-                    }
+                    if (gray >= 238) gray = 255;
+                    else gray = Math.max(0, Math.min(255, Math.round(255 * Math.pow(gray / 255, 1.6))));
                 }
 
-                data[i] = gray;
-                data[i + 1] = gray;
-                data[i + 2] = gray;
-                data[i + 3] = 255;
+                data[i] = gray; data[i + 1] = gray; data[i + 2] = gray; data[i + 3] = 255;
             }
             ctx.putImageData(imgData, 0, 0);
         }
 
         async function renderPageToBW(page, ptW, ptH, gentleMode) {
             const { jsPDF } = window.jspdf;
-            const dpiSteps = [250, 200, 170, 150, 120, 100];
+            const dpiSteps = [220, 180, 150, 120, 100];
 
             for (const dpi of dpiSteps) {
                 const scale = dpi / 72;
@@ -314,6 +264,7 @@
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+                // Отрендерить оригинальную страницу со всеми данными и штампами
                 await page.render({
                     canvasContext: ctx,
                     viewport: page.getViewport({ scale }),
@@ -322,7 +273,7 @@
 
                 applyScannerFilter(ctx, canvas.width, canvas.height, gentleMode);
 
-                for (let q = 0.85; q >= 0.35; q -= 0.1) {
+                for (let q = 0.85; q >= 0.3; q -= 0.15) {
                     const quality = Number(q.toFixed(2));
                     const dataUrl = canvas.toDataURL('image/jpeg', quality);
                     const singleDoc = new jsPDF({
@@ -335,25 +286,13 @@
                     const pdfArrayBuffer = singleDoc.output('arraybuffer');
 
                     if (pdfArrayBuffer.byteLength <= MAX_BYTES) {
-                        canvas.width = 0;
-                        canvas.height = 0;
-                        return {
-                            pdfBytes: pdfArrayBuffer,
-                            dataUrl,
-                            ptW,
-                            ptH,
-                            dpi,
-                            quality,
-                            size: pdfArrayBuffer.byteLength
-                        };
+                        canvas.width = 0; canvas.height = 0;
+                        return { pdfBytes: pdfArrayBuffer, dataUrl, ptW, ptH, dpi, size: pdfArrayBuffer.byteLength };
                     }
                 }
-
-                canvas.width = 0;
-                canvas.height = 0;
+                canvas.width = 0; canvas.height = 0;
             }
-
-            throw new Error("Не вдалося стиснути сторінку до 490 КБ");
+            throw new Error("Не вдалося вкластися у ліміт 490 КБ");
         }
 
         async function startConversion() {
@@ -369,13 +308,12 @@
                 if (item.status === 'success') continue;
 
                 item.status = 'processing';
-                item.statusText = 'Завантаження PDF та CMap...';
+                item.statusText = 'Завантаження PDF...';
                 item.pagesInfo = [];
                 renderApp();
 
                 try {
                     const arrayBuffer = await item.file.arrayBuffer();
-                    
                     const loadingTask = pdfjsLib.getDocument({
                         data: arrayBuffer,
                         cMapUrl: `${PDFJS_CDN_BASE}/cmaps/`,
@@ -415,13 +353,7 @@
                         combinedDoc.addImage(res.dataUrl, 'JPEG', 0, 0, res.ptW, res.ptH, undefined, 'FAST');
 
                         if (res.size > maxPageSize) maxPageSize = res.size;
-
-                        item.pagesInfo.push({
-                            pageNum: p,
-                            size: res.size,
-                            dpi: res.dpi,
-                            previewDataUrl: res.dataUrl
-                        });
+                        item.pagesInfo.push({ pageNum: p, size: res.size, dpi: res.dpi, previewDataUrl: res.dataUrl });
                     }
 
                     item.zipBytes = await zip.generateAsync({ type: 'arraybuffer' });
@@ -432,11 +364,10 @@
                 } catch (err) {
                     console.error(err);
                     item.status = 'error';
-                    item.statusText = `Помилка: ${err.message || 'не вдалося прочитати файл'}`;
+                    item.statusText = `Помилка: ${err.message || 'не вдалося'}`;
                 }
                 renderApp();
             }
-
             isProcessing = false;
             renderApp();
         }
@@ -447,9 +378,7 @@
             const blob = new Blob([item.zipBytes], { type: 'application/zip' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_pages.zip`;
-            a.click();
+            a.href = url; a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_pages.zip`; a.click();
             URL.revokeObjectURL(url);
         }
 
@@ -459,9 +388,7 @@
             const blob = new Blob([item.combinedPdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_full.pdf`;
-            a.click();
+            a.href = url; a.download = `${item.file.name.replace(/\.pdf$/i, '')}_BW_full.pdf`; a.click();
             URL.revokeObjectURL(url);
         }
 
