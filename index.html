@@ -2,8 +2,8 @@ import fitz  # PyMuPDF
 import pypdf
 import io
 
-def fix_customs_pdf(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
-    # Открываем документ через PyMuPDF с принудительной растеризацией векторных слоев данных
+def convert_customs_pdf_to_strict_bw(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
+    # Открываем исходный документ
     doc = fitz.open(input_pdf_path)
     writer = pypdf.PdfWriter()
 
@@ -11,16 +11,18 @@ def fix_customs_pdf(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
         page = doc[page_num]
         best_page_bytes = None
         
-        # Подбираем DPI так, чтобы текст оставался идеальным, а вес был < 490 КБ
-        for dpi in [180, 150, 120, 100]:
+        # Подбираем оптимальный DPI, чтобы текст и иероглифы были кристально четкими
+        for dpi in [200, 150, 120, 100]:
             zoom = dpi / 72
             mat = fitz.Matrix(zoom, zoom)
             
-            # alpha=False гарантирует белый непрозрачный фон, а get_pixmap захватывает абсолютно все слои текста и печатей
+            # alpha=False гарантирует белый непрозрачный фон, 
+            # colorspace=fitz.csGRAY переводит всё в оттенки серого (сохраняя черный текст и печати)
             pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
             
             best_q_bytes = None
-            for q in [75, 60, 45, 30]:
+            # Подбираем качество сжатия JPEG для соблюдения лимита < 490 КБ
+            for q in [80, 65, 50, 35, 25]:
                 img_data = pix.tobytes("jpeg", jpg_quality=q)
                 img_doc = fitz.open("pdf", img_data)
                 pdf_bytes = img_doc.convert_to_pdf()
@@ -35,19 +37,24 @@ def fix_customs_pdf(input_pdf_path, output_pdf_path, max_bytes=490 * 1024):
                 break
                 
         if not best_page_bytes:
+            # Экстренный резервный вариант сжатия
             zoom = 90 / 72
             mat = fitz.Matrix(zoom, zoom)
             pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY, alpha=False)
-            img_data = pix.tobytes("jpeg", jpg_quality=25)
+            img_data = pix.tobytes("jpeg", jpg_quality=20)
             img_doc = fitz.open("pdf", img_data)
             best_page_bytes = img_doc.convert_to_pdf()
 
+        # Добавляем обработанную страницу в результирующий PDF
         single_page_reader = pypdf.PdfReader(io.BytesIO(best_page_bytes))
         writer.add_page(single_page_reader.pages[0])
 
     with open(output_pdf_path, "wb") as f:
         writer.write(f)
-    print(f"Готово! Файл сохранен без потери текста: {output_pdf_path}")
+    print(f"Готово! Файл успешно сохранен: {output_pdf_path}")
 
-# Запуск:
-# fix_customs_pdf("export documents for shipment of CI-BP20260812.pdf", "export_documents_fixed_text.pdf")
+# Запуск функции для вашего файла:
+convert_customs_pdf_to_strict_bw(
+    "export documents for shipment of CI-BP20260812.pdf", 
+    "export_documents_final_ready.pdf"
+)
