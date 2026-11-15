@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ua">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -23,7 +23,8 @@
       <p class="text-slate-300 text-sm" data-i18n="subtitle">Постраничное разделение · Grayscale · &lt; 490 KB</p>
     </div>
     <div>
-      <button id="ua" class="px-3 py-1 rounded bg-blue-700">UA</button>
+      <button id="ru" class="px-3 py-1 rounded bg-blue-700">RU</button>
+      <button id="ua" class="px-3 py-1 rounded">UA</button>
       <button id="en" class="px-3 py-1 rounded">EN</button>
     </div>
   </div>
@@ -63,10 +64,11 @@ const PDFJS_ASSETS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $ = id => document.getElementById(id);
 const i18n = {
+  ru: { subtitle: 'Постраничное разделение · Grayscale · &lt; 490 KB', upload: 'Выбери PDF или перетащи сюда', local: 'Обработка локально в браузере.', settings: 'Параметры обработки', resolution: 'Разрешение', color: 'Цвет', size: 'Макс. размер', output: 'Режим', convert: 'Разделить и конвертировать', clear: 'Очистить очередь', queue: 'Результаты по страницам', downloadall: 'Скачать всё (ZIP)', empty: 'Очередь пуста', wait: 'В очереди', working: 'Обработка...', done: 'Готово', download: 'Скачать PDF', error: 'Ошибка', cancel: 'Удалить', pages: 'Страниц', out: 'Размер' },
   ua: { subtitle: 'Посторінковий поділ · Grayscale · &lt; 490 KB', upload: 'Оберіть PDF або перетягніть сюди', local: 'Обробка локально у браузері.', settings: 'Параметри обробки', resolution: 'Роздільна здатність', color: 'Колір', size: 'Макс. розмір', output: 'Режим', convert: 'Розділити та конвертувати', clear: 'Очистити чергу', queue: 'Результати за сторінками', downloadall: 'Завантажити все (ZIP)', empty: 'Черга порожня', wait: 'У черзі', working: 'Обробка...', done: 'Готово', download: 'Завантажити PDF', error: 'Помилка', cancel: 'Видалити', pages: 'Сторінок', out: 'Розмір' },
   en: { subtitle: 'Page splitting · Grayscale · &lt; 490 KB', upload: 'Choose PDFs or drag and drop here', local: 'Processing locally in browser.', settings: 'Settings', resolution: 'Resolution', color: 'Color', size: 'Max size', output: 'Mode', convert: 'Split and Convert', clear: 'Clear queue', queue: 'Pages Queue', downloadall: 'Download all (ZIP)', empty: 'Queue is empty', wait: 'Queued', working: 'Processing...', done: 'Complete', download: 'Download PDF', error: 'Error', cancel: 'Remove', pages: 'Pages', out: 'Size' }
 };
-let lang = 'ua', queue = [], busy = false;
+let lang = 'ru', queue = [], busy = false;
 const s = k => i18n[lang][k] || k;
 const escaped = x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const readable = n => n < 1024 * 1024 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB';
@@ -74,10 +76,10 @@ const baseName = n => n.replace(/\.pdf$/i, '');
 function translate() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = s(el.dataset.i18n));
-  ['ua','en'].forEach(l => $(l).className = 'px-3 py-1 rounded ' + (lang === l ? 'bg-blue-700' : 'hover:bg-slate-800'));
+  ['ru','ua','en'].forEach(l => $(l).className = 'px-3 py-1 rounded ' + (lang === l ? 'bg-blue-700' : 'hover:bg-slate-800'));
   render();
 }
-['ua','en'].forEach(l => $(l).addEventListener('click', () => { lang = l; translate(); }));
+['ru','ua','en'].forEach(l => $(l).addEventListener('click', () => { lang = l; translate(); }));
 
 function add(files) {
   if (busy) return;
