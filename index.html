@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ua">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -20,10 +20,9 @@
   <div class="max-w-6xl mx-auto px-5 py-5 flex gap-4 justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold">BankPDF <span class="text-blue-400">Converter</span></h1>
-      <p class="text-slate-300 text-sm" data-i18n="subtitle">Постраничное разделение · Grayscale · &lt; 490 KB</p>
+      <p class="text-slate-300 text-sm" data-i18n="subtitle">Посторінковий поділ · Grayscale · &lt; 490 KB</p>
     </div>
     <div>
-      <button id="ru" class="px-3 py-1 rounded bg-blue-700">RU</button>
       <button id="ua" class="px-3 py-1 rounded">UA</button>
       <button id="en" class="px-3 py-1 rounded">EN</button>
     </div>
@@ -34,27 +33,27 @@
   <label id="drop" class="drop bg-white rounded-2xl shadow-sm p-8 cursor-pointer block text-center">
     <input id="input" type="file" accept=".pdf,application/pdf" multiple class="hidden">
     <div class="text-4xl mb-3">⇧</div>
-    <div class="font-semibold" data-i18n="upload">Выбери PDF или перетащи сюда</div>
-    <p class="text-sm text-slate-500 mt-2" data-i18n="local">Обработка локально в браузере. Файлы не отправляются на сервер.</p>
+    <div class="font-semibold" data-i18n="upload">Оберіть PDF або перетягніть сюди</div>
+    <p class="text-sm text-slate-500 mt-2" data-i18n="local">Обробка локально у браузері. Файли не надсилаються на сервер.</p>
   </label>
   <div class="bg-white rounded-2xl shadow-sm p-6">
-    <h2 class="font-bold mb-4" data-i18n="settings">Параметры обработки</h2>
+    <h2 class="font-bold mb-4" data-i18n="settings">Параметри обробки</h2>
     <dl class="space-y-3 text-sm">
-      <div class="flex justify-between gap-3"><dt data-i18n="resolution">Разрешение</dt><dd class="font-bold">Автоподбор (до &lt;490 КБ)</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="color">Цвет</dt><dd class="font-bold">Grayscale (Черно-белый)</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="size">Макс. размер файла</dt><dd class="font-bold text-blue-700">490 КБ / страница</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="output">Режим</dt><dd class="font-bold">Каждая страница — отдельный PDF</dd></div>
+      <div class="flex justify-between gap-3"><dt data-i18n="resolution">Роздільна здатність</dt><dd class="font-bold">Автопідбір (до &lt;490 КБ)</dd></div>
+      <div class="flex justify-between gap-3"><dt data-i18n="color">Колір</dt><dd class="font-bold">Grayscale (Чорно-білий)</dd></div>
+      <div class="flex justify-between gap-3"><dt data-i18n="size">Макс. розмір файлу</dt><dd class="font-bold text-blue-700">490 КБ / сторінка</dd></div>
+      <div class="flex justify-between gap-3"><dt data-i18n="output">Режим</dt><dd class="font-bold">Кожна сторінка — окремий PDF</dd></div>
     </dl>
   </div>
-  <button id="convert" disabled class="w-full rounded-xl py-3 bg-blue-700 text-white font-semibold hover:bg-blue-800" data-i18n="convert">Разделить и конвертировать</button>
-  <button id="clear" class="w-full rounded-xl py-2 border border-slate-300 bg-white text-sm" data-i18n="clear">Очистить очередь</button>
+  <button id="convert" disabled class="w-full rounded-xl py-3 bg-blue-700 text-white font-semibold hover:bg-blue-800" data-i18n="convert">Розділити та конвертувати</button>
+  <button id="clear" class="w-full rounded-xl py-2 border border-slate-300 bg-white text-sm" data-i18n="clear">Очистити чергу</button>
 </section>
 <section class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
   <div class="flex justify-between flex-wrap gap-3 items-center mb-5">
-    <h2 class="font-bold text-lg" data-i18n="queue">Документы и страницы</h2>
-    <button id="all" class="hidden rounded-lg bg-slate-900 text-white text-sm px-4 py-2" data-i18n="downloadall">Скачать всё (ZIP)</button>
+    <h2 class="font-bold text-lg" data-i18n="queue">Документи та сторінки</h2>
+    <button id="all" class="hidden rounded-lg bg-slate-900 text-white text-sm px-4 py-2" data-i18n="downloadall">Завантажити все (ZIP)</button>
   </div>
-  <div id="queueItems" class="space-y-3"><p class="text-slate-400" data-i18n="empty">Очередь пуста</p></div>
+  <div id="queueItems" class="space-y-3"><p class="text-slate-400" data-i18n="empty">Черга порожня</p></div>
 </section>
 </main>
 <footer class="text-center text-slate-500 text-xs py-5">BankPDF Converter · Budpostach</footer>
@@ -64,11 +63,10 @@ const PDFJS_ASSETS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $ = id => document.getElementById(id);
 const i18n = {
-  ru: { subtitle: 'Постраничное разделение · Grayscale · &lt; 490 KB', upload: 'Выбери PDF или перетащи сюда', local: 'Обработка локально в браузере.', settings: 'Параметры обработки', resolution: 'Разрешение', color: 'Цвет', size: 'Макс. размер', output: 'Режим', convert: 'Разделить и конвертировать', clear: 'Очистить очередь', queue: 'Результаты по страницам', downloadall: 'Скачать всё (ZIP)', empty: 'Очередь пуста', wait: 'В очереди', working: 'Обработка...', done: 'Готово', download: 'Скачать PDF', error: 'Ошибка', cancel: 'Удалить', pages: 'Страниц', out: 'Размер' },
   ua: { subtitle: 'Посторінковий поділ · Grayscale · &lt; 490 KB', upload: 'Оберіть PDF або перетягніть сюди', local: 'Обробка локально у браузері.', settings: 'Параметри обробки', resolution: 'Роздільна здатність', color: 'Колір', size: 'Макс. розмір', output: 'Режим', convert: 'Розділити та конвертувати', clear: 'Очистити чергу', queue: 'Результати за сторінками', downloadall: 'Завантажити все (ZIP)', empty: 'Черга порожня', wait: 'У черзі', working: 'Обробка...', done: 'Готово', download: 'Завантажити PDF', error: 'Помилка', cancel: 'Видалити', pages: 'Сторінок', out: 'Розмір' },
   en: { subtitle: 'Page splitting · Grayscale · &lt; 490 KB', upload: 'Choose PDFs or drag and drop here', local: 'Processing locally in browser.', settings: 'Settings', resolution: 'Resolution', color: 'Color', size: 'Max size', output: 'Mode', convert: 'Split and Convert', clear: 'Clear queue', queue: 'Pages Queue', downloadall: 'Download all (ZIP)', empty: 'Queue is empty', wait: 'Queued', working: 'Processing...', done: 'Complete', download: 'Download PDF', error: 'Error', cancel: 'Remove', pages: 'Pages', out: 'Size' }
 };
-let lang = 'ru', queue = [], busy = false;
+let lang = 'ua', queue = [], busy = false;
 const s = k => i18n[lang][k] || k;
 const escaped = x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const readable = n => n < 1024 * 1024 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB';
@@ -76,10 +74,10 @@ const baseName = n => n.replace(/\.pdf$/i, '');
 function translate() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = s(el.dataset.i18n));
-  ['ru','ua','en'].forEach(l => $(l).className = 'px-3 py-1 rounded ' + (lang === l ? 'bg-blue-700' : 'hover:bg-slate-800'));
+  ['ua','en'].forEach(l => $(l).className = 'px-3 py-1 rounded ' + (lang === l ? 'bg-blue-700 text-white' : 'hover:bg-slate-200'));
   render();
 }
-['ru','ua','en'].forEach(l => $(l).addEventListener('click', () => { lang = l; translate(); }));
+['ua','en'].forEach(l => $(l).addEventListener('click', () => { lang = l; translate(); }));
 
 function add(files) {
   if (busy) return;
@@ -198,7 +196,7 @@ async function convertOne(q) {
     q.outputs = [];
 
     for (let p = 1; p <= q.pages; p++) {
-      q.progress = `(страница ${p} из ${q.pages})`;
+      q.progress = `(сторінка ${p} із ${q.pages})`;
       render();
       await pause();
 
