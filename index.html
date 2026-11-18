@@ -22,7 +22,7 @@
       <img src="https://github.com/Budpostach/BudPDF/raw/main/public/BP_logo.jpg" alt="Budpostach Logo" class="w-10 h-10 rounded-xl object-cover border border-slate-800 shadow">
       <div>
         <h1 class="text-2xl font-bold">BudPdf <span class="text-blue-400">Converter</span></h1>
-        <p class="text-slate-300 text-sm" data-i18n="subtitle">Посторінковий поділ · Grayscale · &lt; 490 KB</p>
+        <p class="text-slate-300 text-sm" data-i18n="subtitle">Посторінковий поділ · Оптимізація · Налаштування</p>
       </div>
     </div>
     <div class="flex gap-1">
@@ -40,15 +40,32 @@
     <div class="font-semibold" data-i18n="upload">Оберіть PDF або перетягніть сюди</div>
     <p class="text-sm text-slate-500 mt-2" data-i18n="local">Обробка локально у браузері. Файли не надсилаються на сервер.</p>
   </label>
-  <div class="bg-white rounded-2xl shadow-sm p-6">
-    <h2 class="font-bold mb-4" data-i18n="settings">Параметри обробки</h2>
-    <dl class="space-y-3 text-sm">
-      <div class="flex justify-between gap-3"><dt data-i18n="resolution">Роздільна здатність</dt><dd class="font-bold" data-i18n="resVal">Автопідбір (до &lt;490 КБ)</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="color">Колір</dt><dd class="font-bold" data-i18n="colorVal">Grayscale (Чорно-білий)</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="size">Макс. розмір файлу</dt><dd class="font-bold text-blue-700" data-i18n="sizeVal">490 КБ / сторінка</dd></div>
-      <div class="flex justify-between gap-3"><dt data-i18n="output">Режим</dt><dd class="font-bold text-right" data-i18n="outputVal">Кожна сторінка — окремий PDF</dd></div>
+  
+  <div class="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+    <h2 class="font-bold text-base" data-i18n="settings">Параметри обробки</h2>
+    
+    <div>
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5" data-i18n="sizeLimitLabel">Ліміт розміру сторінки:</label>
+      <select id="size-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <option value="490">До 490 КБ (Суворий ліміт)</option>
+        <option value="1900">До 1.9 МБ (Збільшений ліміт)</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5" data-i18n="colorModeLabel">Колірна схема:</label>
+      <select id="color-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <option value="grayscale">Grayscale (Чорно-білий)</option>
+        <option value="color">Кольоровий (Зберегти колір)</option>
+      </select>
+    </div>
+
+    <dl class="space-y-2 text-xs text-slate-500 pt-2 border-t">
+      <div class="flex justify-between"><dt data-i18n="resolution">Роздільна здатність</dt><dd class="font-medium text-slate-750" data-i18n="resVal">Автопідбір під ліміт</dd></div>
+      <div class="flex justify-between"><dt data-i18n="output">Режим</dt><dd class="font-medium text-slate-750" data-i18n="outputVal">Кожна сторінка — окремий PDF</dd></div>
     </dl>
   </div>
+
   <button id="convert" disabled class="w-full rounded-xl py-3 bg-blue-700 text-white font-semibold hover:bg-blue-800" data-i18n="convert">Розділити та конвертувати</button>
   <button id="clear" class="w-full rounded-xl py-2 border border-slate-300 bg-white text-sm" data-i18n="clear">Очистити чергу</button>
 </section>
@@ -91,16 +108,14 @@ const $ = id => document.getElementById(id);
 
 const i18n = {
   ua: {
-    subtitle: 'Посторінковий поділ · Grayscale · < 490 KB',
+    subtitle: 'Посторінковий поділ · Налаштування розміру та кольору',
     upload: 'Оберіть PDF або перетягніть сюди',
     local: 'Обробка локально у браузері. Файли не надсилаються на сервер.',
     settings: 'Параметри обробки',
+    sizeLimitLabel: 'Ліміт розміру сторінки:',
+    colorModeLabel: 'Колірна схема:',
     resolution: 'Роздільна здатність',
-    resVal: 'Автопідбір (до <490 КБ)',
-    color: 'Колір',
-    colorVal: 'Grayscale (Чорно-білий)',
-    size: 'Макс. розмір файлу',
-    sizeVal: '490 КБ / сторінка',
+    resVal: 'Автопідбір під ліміт',
     output: 'Режим',
     outputVal: 'Кожна сторінка — окремий PDF',
     convert: 'Розділити та конвертувати',
@@ -121,16 +136,14 @@ const i18n = {
     pageProgress: (p, total) => `(сторінка ${p} із ${total})`
   },
   en: {
-    subtitle: 'Page splitting · Grayscale · < 490 KB',
+    subtitle: 'Page splitting · Size & Color settings',
     upload: 'Choose PDFs or drag and drop here',
     local: 'Processing locally in browser. Files are never uploaded.',
-    settings: 'Settings',
+    settings: 'Processing Settings',
+    sizeLimitLabel: 'Page size limit:',
+    colorModeLabel: 'Color mode:',
     resolution: 'Resolution',
-    resVal: 'Auto-fit (< 490 KB)',
-    color: 'Color',
-    colorVal: 'Grayscale (B&W)',
-    size: 'Max file size',
-    sizeVal: '490 KB / page',
+    resVal: 'Auto-fit to limit',
     output: 'Mode',
     outputVal: 'Each page — separate PDF',
     convert: 'Split and Convert',
@@ -329,6 +342,9 @@ async function convertOne(q) {
     revokeOutputs(q);
     q.outputs = [];
 
+    const maxSizeBytes = parseInt($('size-select').value) * 1024;
+    const isGrayscale = $('color-select').value === 'grayscale';
+
     for (let p = 1; p <= q.pages; p++) {
       q.progress = s('pageProgress')(p, q.pages);
       render();
@@ -351,7 +367,9 @@ async function convertOne(q) {
         const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
         
         await page.render({ canvasContext: ctx, viewport, background: '#ffffff' }).promise;
-        grayPixels(canvas);
+        if (isGrayscale) {
+          grayPixels(canvas);
+        }
 
         let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', qualities[dIdx] || 0.7));
         let jpegBuf = new Uint8Array(await blob.arrayBuffer());
@@ -366,7 +384,7 @@ async function convertOne(q) {
         const arrayBuf = pdf.output('arraybuffer');
         canvas.width = canvas.height = 0;
 
-        if (arrayBuf.byteLength < 490 * 1024 || dIdx === dpisToTry.length - 1) {
+        if (arrayBuf.byteLength < maxSizeBytes || dIdx === dpisToTry.length - 1) {
           pdfBytes = arrayBuf;
           previewBlob = blob;
           finalDpi = currentDpi;
@@ -412,6 +430,6 @@ $('convert').addEventListener('click', async () => {
 });
 
 translate();
-</script> 
+</script>
 </body>
 </html>
